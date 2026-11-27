@@ -40,7 +40,7 @@ cargo test
 
 - **Application Tauri 2** : point d'entrée et chargement du frontend configurés.
 - **Configuration** : lecture et sauvegarde des paramètres JSON implémentées.
-- **Mises à jour** : récupération des métadonnées GitHub et vérification SHA-256 implémentées côté Rust ; téléchargement et installation non intégrés.
+- **Mises à jour** : vérification de la dernière version publiée sur GitHub depuis l’interface et ouverture de la page officielle de téléchargement. Le téléchargement et l’installation automatiques ne sont pas encore intégrés ; la vérification SHA-256 est disponible côté Rust.
 - **Détection audio Windows** : énumération des périphériques actifs de sortie et d'entrée via Core Audio/MMDevice, avec nom, identifiant Windows et périphérique par défaut.
 - **Changement des périphériques par défaut** : implémenté via l'interface COM `IPolicyConfig`, non documentée par Microsoft. Le changement s'applique aux rôles Console, Multimedia et Communications.
 - **Interface Tauri** : les commandes audio sont reliées aux sélecteurs de périphériques d'entrée et de sortie.
