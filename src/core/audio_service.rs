@@ -6,9 +6,10 @@
 //! The latter is not a public Windows contract and may need adjustment after
 //! future Windows updates.
 
+use serde::Serialize;
 use std::fmt;
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 pub struct AudioDevice {
     /// Friendly name shown to the user.
     pub name: String,
