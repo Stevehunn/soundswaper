@@ -1,0 +1,43 @@
+# Target build outputs (Rust)
+/target/
+Cargo.lock
+*.pdb
+
+# Release artifacts
+target/release/*
+target/debug/soundswap.exe
+target/x86_64-unknown-windows-msvc/release/soundswap.exe
+
+# Tauri builds
+src-tauri/target/
+target/tauri/bundle/**/*
+**/.tauri/**/*
+
+# Frontend build outputs
+src-tauri/frontend/dist/
+node_modules/
+
+# Windows installer/portable EXE
+*.msi
+*.exe (except in target/release/)
+
+# Documentation & test coverage (generated)
+/docs/_build/
+/test-report.xml
+
+# IDE & editor files
+.vscode/**/*
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Application data (user-specific settings stored separately)
+%APPDATA%/SoundSwap/config.json
+
+# Logs & temp files
+*.log
+*.tmp
+*.part

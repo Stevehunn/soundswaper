@@ -1,0 +1,12 @@
+[package]
+name = "tray-plugin"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+# Tauri v2 dependencies
+tauri = { workspace = true, features = ["all"] }
+serde = { workspace = true }
+
+# Windows API for tray notification area
+winapi = { workspace = true }

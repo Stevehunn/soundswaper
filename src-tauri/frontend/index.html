@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SoundSwap</title>
+  
+  <!-- Tauri + Tailwind CSS -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.0/dist/tailwind.min.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <style>
+    /* Custom animations & transitions */
+    .card { transition: all 0.2s ease; }
+    .card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.15); }
+    
+    /* Custom scrollbar for modern look */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(200,200,200,0.3); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(200,200,200,0.5); }
+    
+    /* Smooth fade animations */
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .fade-in { animation: fadeIn 0.3s ease-out; }
+  </style>
+</head>
+<body class="bg-gray-900 text-white font-sans min-h-screen flex flex-col">
+
+  <!-- Top Bar -->
+  <header class="bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 rounded-t-lg shadow-md">
+    <div class="flex justify-between items-center max-w-5xl mx-auto w-full">
+      <h1 class="text-xl font-bold tracking-wide">SoundSwap</h1>
+      
+      <!-- Language Selector -->
+      <select id="languageSelect" onchange="changeLanguage(this.value)" 
+              class="bg-gray-800 text-white px-2 py-1 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-400">
+        <option value="en">English</option>
+        <option value="fr">Français</option>
+      </select>
+      
+      <!-- Theme Selector -->
+      <div id="themeToggle" onclick="toggleTheme()" class="cursor-pointer hover:bg-white/10 rounded px-2 py-1">🌙</div>
+    </div>
+  </header>
+
+  <!-- Main Content -->
+  <main class="flex-1 p-4 flex items-start justify-center overflow-x-hidden">
+    
+    <!-- Configurations Grid (Cards) -->
+    <div id="configsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-5xl mx-auto w-full fade-in">
+      <!-- Cards will be injected by JavaScript -->
+    </div>
+
+  </main>
+
+  <!-- Footer with Update Button -->
+  <footer class="bg-gray-800 px-4 py-2 rounded-b-lg text-sm text-center">
+    <div class="max-w-5xl mx-auto flex justify-between items-center w-full">
+      <span id="versionText" class="text-gray-400">v1.0.0</span>
+      
+      <!-- Update Button (auto-detects new versions) -->
+      <button id="updateButton" onclick="checkForUpdates()" 
+              class="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+        <span class="flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+          <span data-i18n="checkUpdates">Check for updates</span>
+        </span>
+      </button>
+    </div>
+  </footer>
+
+  <!-- Hidden update dialog -->
+  <div id="updateDialog" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-gray-900 border border-gray-700 rounded-lg p-6 max-w-md w-full text-center fade-in">
+      <h2 class="text-xl font-bold mb-3" data-i18n="newVersionAvailable">New version available!</h2>
+      <p id="updateMessage" class="text-gray-300 mb-4"></p>
+      <button onclick="closeUpdateDialog()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors">
+        Close
+      </button>
+    </div>
+  </div>
+
+  <!-- Hidden color picker for custom theme -->
+  <div id="colorPicker" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
+    <div class="bg-gray-900 border border-gray-700 rounded-lg p-6 max-w-lg w-full text-center fade-in">
+      <h2 class="text-xl font-bold mb-3" data-i18n="customizeTheme">Customize Theme</h2>
+      <p id="customThemeInstruction" class="text-gray-400 text-sm mb-4"></p>
+      
+      <!-- Color inputs -->
+      <div class="grid grid-cols-2 gap-3 mb-4">
+        <input type="color" id="bgColorPicker" onchange="pickColor(this.value, 'background')" />
+        <input type="color" id="cardColorPicker" onchange="pickColor(this.value, 'cards')" />
+        <input type="color" id="textColorPicker" onchange="pickColor(this.value, 'text')" />
+        <input type="color" id="accentColorPicker" onchange="pickColor(this.value, 'accent')" />
+      </div>
+      
+      <button onclick="applyCustomTheme()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded w-full mb-2 transition-colors">
+        Apply Colors
+      </button>
+      <button onclick="closeColorPicker()" class="text-gray-400 hover:text-white transition-colors">
+        Cancel
+      </button>
+    </div>
+  </div>
+
+  <!-- Notification area icon (tray) will be injected by Tauri plugin -->
+  <script>
+    // Language data
+    const translations = {
+      en: { checkUpdates: "Check for updates", newVersionAvailable: "New version available!", 
+             customizeTheme: "Customize Theme" },
+      fr: { checkUpdates: "Vérifier les mises à jour", newVersionAvailable: "Nouvelle version disponible!",
+            customizeTheme: "Personnaliser le thème" }
+    };
+
+    // Change language function
+    function changeLanguage(lang) {
+      const t = translations[lang];
+      document.querySelectorAll('[data-i18n]').forEach(el => {
+        el.textContent = t[el.dataset.i18n] || '';
+      });
+      localStorage.setItem('soundswap_language', lang);
+    }
+
+    // Toggle theme function
+    function toggleTheme() {
+      const btn = document.getElementById('themeToggle');
+      btn.innerHTML = btn.innerHTML === '🌙' ? '☀️' : '🌙';
+      
+      if (btn.innerHTML === '☀️') {
+        document.body.className = 'bg-gray-100 text-gray-900 font-sans min-h-screen flex flex-col';
+        // Update footer color too
+        document.querySelector('footer').classList.remove('bg-gray-800', 'text-white');
+        document.querySelector('footer').classList.add('bg-blue-600', 'text-white');
+      } else {
+        document.body.className = 'bg-gray-900 text-white font-sans min-h-screen flex flex-col';
+        document.querySelector('footer').classList.remove('bg-blue-600', 'text-white');
+        document.querySelector('footer').classList.add('bg-gray-800', 'text-white');
+      }
+      
+      localStorage.setItem('soundswap_theme', btn.innerHTML);
+    }
+
+    // Show update dialog
+    function checkForUpdates() {
+      const dialog = document.getElementById('updateDialog');
+      document.getElementById('updateMessage').textContent = `Checking for updates...`;
+      
+      // Call Rust updater backend (will fetch from GitHub API)
+      // Fetch('https://api.github.com/repos/Stevehunn/soundswaper/releases/latest')
+      //    .then(r => r.json())
+      //    .then(data => {
+      //      if (data.prerelease || data.draft) {
+      //        document.getElementById('updateMessage').textContent = 'No updates available.';
+      //        dialog.classList.add('hidden');
+      //      } else {
+      //        document.getElementById('updateMessage').textContent = `Version ${data.tag_name} is available!`;
+      //      }
+      //    })
+      //    .catch(() => {
+      //      document.getElementById('updateMessage').textContent = 'Could not check for updates.';
+      //    });
+      
+      dialog.classList.remove('hidden');
+    }
+
+    function closeUpdateDialog() {
+      document.getElementById('updateDialog').classList.add('hidden');
+    }
+
+    function pickColor(color, type) {
+      localStorage.setItem('soundswap_' + type, color);
+    }
+
+    function applyCustomTheme() {
+      const bg = document.getElementById('bgColorPicker').value;
+      const card = document.getElementById('cardColorPicker').value;
+      const text = document.getElementById('textColorPicker').value;
+      const accent = document.getElementById('accentColorPicker').value;
+      
+      localStorage.setItem('soundswap_custom_theme', JSON.stringify({ bg, card, text, accent }));
+      closeColorPicker();
+    }
+
+    function closeColorPicker() {
+      document.getElementById('colorPicker').classList.add('hidden');
+    }
+  </script>
+
+</body>
+</html>

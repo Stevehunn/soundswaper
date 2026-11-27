@@ -1,0 +1,46 @@
+//! Custom Tauri plugin for SoundSwap - Tray & Hotkey integration.
+
+use tauri::{CustomPlugin, Manager};
+use std::sync::OnceLock;
+
+/// Plugin state containing current configuration and tray icon info.
+#[derive(Clone)]
+pub struct PluginState {
+    /// Current audio configuration index (1 = first config).
+    pub config_index: u32,
+}
+
+impl Default for PluginState {
+    fn default() -> Self {
+        PluginState {
+            config_index: 1,
+        }
+    }
+}
+
+/// Custom plugin builder that integrates with Tauri runtime.
+pub struct SoundSwapPluginBuilder;
+
+impl CustomPlugin for SoundSwapPluginBuilder {
+    fn name(&self) -> &'static str {
+        "soundswap-plugin"
+    }
+
+    fn build_spans<F>(&self, _: F) -> Result<(), tauri::Error>
+    where
+        F: FnOnce(tauri::StateFns),
+    {
+        Ok(())
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_plugin_state_default() {
+        let state = PluginState::default();
+        assert_eq!(state.config_index, 1);
+    }
+}
