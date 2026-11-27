@@ -212,9 +212,9 @@ pub fn run() {
 
             for (shortcut, description) in shortcuts {
                 app.global_shortcut().register(shortcut).map_err(|error| {
-                    std::io::Error::other(format!(
+                    Box::<dyn std::error::Error>::from(std::io::Error::other(format!(
                         "Could not register global shortcut to {description}: {error}"
-                    )).into()
+                    )))
                 })?;
             }
 
