@@ -20,6 +20,9 @@
     "active": true,
     "targets": [
       "msi"
+    ],
+    "icon": [
+      "assets/banners/sounswap-icon.ico"
     ]
   }
 }
