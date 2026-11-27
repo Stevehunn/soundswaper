@@ -39,7 +39,7 @@ impl Default for Configuration {
             theme: default_theme(),
             language: default_language(),
             check_for_updates: true,
-            start_with_windows: false,
+            start_with_windows: true,
             data_path: String::new(),
         }
     }
@@ -102,7 +102,7 @@ mod tests {
         assert_eq!(config.theme, "system");
         assert_eq!(config.language, "en");
         assert!(config.check_for_updates);
-        assert!(!config.start_with_windows);
+        assert!(config.start_with_windows);
     }
 
     #[test]
