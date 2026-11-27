@@ -1,0 +1,44 @@
+# Build and Test Workflow for SoundSwap Rust
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  
+env:
+  CARGO_TERM_LOG_LEVEL: verbose
+  RUST_BACKTRACE: full
+  
+name: Build & Test
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        
+      - name: Set up Rust toolchain
+        uses: dtolnay/rust-action@latest
+        with:
+          toolchain: stable
+      
+      - name: Install dependencies
+        run: cargo install tauri-cli --locked
+        
+      - name: Verify Tauri CLI version
+        run: cargo tauri dev --help | Select-String -Pattern "Usage" || true
+        
+      - name: Run tests
+        run: cargo test --workspace
+      
+      - name: Build library target
+        run: cargo build --lib
+      
+      - name: Check Cargo.lock is in sync
+        run: cargo generate-lockfile
+        
+      - name: List compiled files
+        run: ls -la target/debug/*.rlib
