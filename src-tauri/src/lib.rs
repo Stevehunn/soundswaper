@@ -2,7 +2,7 @@
 #[path = "../../src/core/lib.rs"]
 pub mod core;
 
-use core::audio_service::{self, AudioDevice};
+use crate::core::audio_service::{self, AudioDevice};
 
 /// Return active endpoints for the requested direction ("input" or "output").
 #[tauri::command]
