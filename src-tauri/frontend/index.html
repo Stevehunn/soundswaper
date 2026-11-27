@@ -90,6 +90,25 @@
             <p id="inputCurrent" class="mt-2 text-xs text-gray-400">Current default: loading…</p>
           </div>
         </div>
+        <div class="mt-5 rounded-lg border border-gray-700 bg-gray-900/60 p-4">
+          <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+            <div>
+              <h2 class="font-semibold">Audio profiles</h2>
+              <p class="text-sm text-gray-400">Save an input/output combination and restore it later.</p>
+            </div>
+            <div class="flex gap-2">
+              <input id="profileName" type="text" maxlength="60" placeholder="Profile name"
+                     class="min-w-0 rounded bg-gray-800 border border-gray-600 px-3 py-2 text-sm text-white" />
+              <button onclick="saveAudioProfile()"
+                      class="rounded bg-indigo-600 hover:bg-indigo-700 px-3 py-2 text-sm font-medium">
+                Save current setup
+              </button>
+            </div>
+          </div>
+          <div id="audioProfiles" class="space-y-2">
+            <p class="text-sm text-gray-400">Loading saved profiles…</p>
+          </div>
+        </div>
       </section>
     </div>
 
@@ -229,6 +248,8 @@
     function closeColorPicker() {
       document.getElementById('colorPicker').classList.add('hidden');
     }
+    let appConfiguration = null;
+
     function showAudioStatus(message, isError = false) {
       const status = document.getElementById('audioStatus');
       status.textContent = message;
@@ -307,6 +328,125 @@
       }
     }
 
+ 
+    async function persistConfiguration() {
+      if (!appConfiguration) return;
+      await getTauriInvoke()('save_configuration', { configuration: appConfiguration });
+    }
+
+    function renderAudioProfiles() {
+      const container = document.getElementById('audioProfiles');
+      container.replaceChildren();
+      const profiles = appConfiguration?.configurations || [];
+      if (profiles.length === 0) {
+        const empty = document.createElement('p');
+        empty.className = 'text-sm text-gray-400';
+        empty.textContent = 'No saved profiles yet.';
+        container.appendChild(empty);
+        return;
+      }
+
+      profiles.forEach((profile, index) => {
+        const row = document.createElement('div');
+        row.className = 'flex flex-wrap items-center justify-between gap-3 rounded border border-gray-700 bg-gray-800 p-3';
+        const details = document.createElement('div');
+        details.className = 'min-w-0';
+        const name = document.createElement('p');
+        name.className = 'font-medium';
+        name.textContent = profile.name;
+        const description = document.createElement('p');
+        description.className = 'text-xs text-gray-400 break-all';
+        description.textContent = 'Saved playback and recording device combination';
+        details.append(name, description);
+
+        const actions = document.createElement('div');
+        actions.className = 'flex gap-2';
+        const apply = document.createElement('button');
+        apply.className = 'rounded bg-blue-600 hover:bg-blue-700 px-3 py-1 text-sm';
+        apply.textContent = 'Apply';
+        apply.addEventListener('click', () => applyAudioProfile(index));
+        const remove = document.createElement('button');
+        remove.className = 'rounded bg-gray-700 hover:bg-red-700 px-3 py-1 text-sm';
+        remove.textContent = 'Delete';
+        remove.addEventListener('click', () => deleteAudioProfile(index));
+        actions.append(apply, remove);
+        row.append(details, actions);
+        container.appendChild(row);
+      });
+    }
+
+    async function loadAppConfiguration() {
+      try {
+        appConfiguration = await getTauriInvoke()('load_configuration');
+        appConfiguration.configurations ||= [];
+        renderAudioProfiles();
+      } catch (error) {
+        showAudioStatus('Could not load saved profiles: ' + String(error), true);
+        appConfiguration = { configurations: [], theme: 'system', language: 'en', check_for_updates: true, start_with_windows: false, data_path: '' };
+        renderAudioProfiles();
+      }
+    }
+
+    async function saveAudioProfile() {
+      const nameInput = document.getElementById('profileName');
+      const name = nameInput.value.trim();
+      const outputDevice = document.getElementById('outputDeviceSelect').value;
+      const inputDevice = document.getElementById('inputDeviceSelect').value;
+      if (!name) {
+        showAudioStatus('Enter a name for this profile.', true);
+        nameInput.focus();
+        return;
+      }
+      if (!outputDevice || !inputDevice) {
+        showAudioStatus('Both an output and an input device must be selected.', true);
+        return;
+      }
+
+      appConfiguration.configurations.push({
+        name,
+        output_device: outputDevice,
+        input_device: inputDevice,
+        hotkey: null
+      });
+      try {
+        await persistConfiguration();
+        nameInput.value = '';
+        renderAudioProfiles();
+        showAudioStatus('Audio profile saved.');
+      } catch (error) {
+        appConfiguration.configurations.pop();
+        showAudioStatus('Could not save audio profile: ' + String(error), true);
+      }
+    }
+
+    async function applyAudioProfile(index) {
+      const profile = appConfiguration?.configurations?.[index];
+      if (!profile) return;
+      try {
+        const invoke = getTauriInvoke();
+        await invoke('set_default_audio_device', { deviceType: 'output', deviceId: profile.output_device });
+        await invoke('set_default_audio_device', { deviceType: 'input', deviceId: profile.input_device });
+        await refreshAudioDevices();
+        showAudioStatus('Profile "' + profile.name + '" applied.');
+      } catch (error) {
+        await refreshAudioDevices();
+        showAudioStatus('Could not fully apply profile "' + profile.name + '": ' + String(error), true);
+      }
+    }
+
+    async function deleteAudioProfile(index) {
+      const removed = appConfiguration.configurations.splice(index, 1)[0];
+      try {
+        await persistConfiguration();
+        renderAudioProfiles();
+        showAudioStatus('Profile "' + removed.name + '" deleted.');
+      } catch (error) {
+        appConfiguration.configurations.splice(index, 0, removed);
+        showAudioStatus('Could not delete profile: ' + String(error), true);
+      }
+    }
+
+    loadAppConfiguration();
     refreshAudioDevices();
 
     // Keep the displayed defaults synchronized after a tray refresh or global shortcut.

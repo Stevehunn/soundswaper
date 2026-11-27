@@ -44,6 +44,7 @@ cargo test
 - **Windows default-device switching** uses the undocumented COM `IPolicyConfig` interface. SoundSwaper currently applies the selected endpoint to Console, Multimedia, and Communications roles; test compatibility on supported Windows versions.
 - **Tauri audio commands and frontend selectors** expose endpoint listing, default-device lookup, and switching for input and output.
 - **System tray** provides Open, Refresh audio devices, and Quit actions. A left click opens the main window.
+- **Persistent audio profiles** let users save, apply, and delete input/output device combinations. Profiles are stored as JSON in the user's application configuration directory and retain Windows endpoint IDs.
 - **Global shortcuts** are registered while the app is running:
   - `Ctrl + Alt + S`: show the main window.
   - `Ctrl + Alt + O`: switch to the next active output device.

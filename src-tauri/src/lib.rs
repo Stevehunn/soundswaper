@@ -3,6 +3,7 @@
 pub mod core;
 
 use crate::core::audio_service::{self, AudioDevice};
+use crate::core::config::{self, Configuration};
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
@@ -11,6 +12,37 @@ use tauri::{
 use tauri_plugin_global_shortcut::{
     Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState,
 };
+
+/// Load the user's persisted settings and audio profiles.
+#[tauri::command]
+fn load_configuration(app: tauri::AppHandle) -> Result<Configuration, String> {
+    let directory = app
+        .path()
+        .app_config_dir()
+        .map_err(|error| format!("Could not resolve the application config directory: {error}"))?;
+    let directory = directory.to_string_lossy().to_string();
+    std::fs::create_dir_all(&directory)
+        .map_err(|error| format!("Could not create the application config directory: {error}"))?;
+    Ok(config::load_config(&directory))
+}
+
+/// Persist settings and profiles in the user's application config directory.
+#[tauri::command]
+fn save_configuration(
+    app: tauri::AppHandle,
+    mut configuration: Configuration,
+) -> Result<(), String> {
+    let directory = app
+        .path()
+        .app_config_dir()
+        .map_err(|error| format!("Could not resolve the application config directory: {error}"))?;
+    let directory = directory.to_string_lossy().to_string();
+    std::fs::create_dir_all(&directory)
+        .map_err(|error| format!("Could not create the application config directory: {error}"))?;
+    configuration.data_path = directory.clone();
+    config::save_config_to_path(&configuration, &directory)
+        .map_err(|error| format!("Could not save SoundSwaper settings: {error}"))
+}
 
 /// Return active endpoints for the requested direction ("input" or "output").
 #[tauri::command]
@@ -163,6 +195,8 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
+            load_configuration,
+            save_configuration,
             get_audio_devices,
             get_default_audio_device,
             set_default_audio_device
