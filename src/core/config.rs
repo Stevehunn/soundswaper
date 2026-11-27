@@ -1,79 +1,95 @@
 //! Configuration management for SoundSwap.
-//! Persists user settings to JSON file in %APPDATA% directory.
+//! Persists user settings to a JSON file in the user's application data directory.
 
 use serde::{Deserialize, Serialize};
+use std::fs;
+use std::path::{Path, PathBuf};
 
-/// User configuration structure.
-#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
 pub struct Configuration {
-    /// List of configured audio devices.
     pub configurations: Vec<ConfigurationItem>,
-    /// Theme preference (dark/light/system/custom).
     #[serde(default = "default_theme")]
     pub theme: String,
-    /// Current language.
     #[serde(default = "default_language")]
     pub language: String,
-    /// Check for updates automatically (true/false).
     pub check_for_updates: bool,
-    /// Start with Windows option.
     pub start_with_windows: bool,
-    /// User data path (e.g., %APPDATA%\\SoundSwap)
     pub data_path: String,
 }
 
 fn default_theme() -> String { "system".to_string() }
 fn default_language() -> String { "en".to_string() }
 
-/// A single audio device configuration.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ConfigurationItem {
-    /// Configuration name.
     pub name: String,
-    /// Default output device (hardware ID).
     pub output_device: String,
-    /// Default input device (hardware ID).
     pub input_device: String,
-    /// Optional keyboard shortcut.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub hotkey: Option<String>,
 }
 
-/// Configuration file path in %APPDATA%.
 pub const CONFIG_FILE_NAME: &str = "soundswap_config.json";
 
 impl Default for Configuration {
     fn default() -> Self {
-        Configuration::default()
+        Self {
+            configurations: Vec::new(),
+            theme: default_theme(),
+            language: default_language(),
+            check_for_updates: true,
+            start_with_windows: false,
+            data_path: String::new(),
+        }
     }
 }
 
-/// Load configuration from JSON file.
+impl Configuration {
+    /// Save this configuration in the supplied directory.
+    pub fn save(&self, data_path: &str) -> std::io::Result<()> {
+        save_config_to_path(self, data_path)
+    }
+}
+
+fn config_file_path(data_path: &str) -> PathBuf {
+    Path::new(data_path).join(CONFIG_FILE_NAME)
+}
+
+/// Load configuration from disk, falling back to defaults if it is absent or invalid.
 pub fn load_config(data_path: &str) -> Configuration {
-    let default_config = Configuration::default();
-    
-    // For now, use default config (will be replaced by actual JSON file loading in production)
-    // In real implementation:
-    // - Construct full path: data_path + "/" + CONFIG_FILE_NAME
-    // - Read and parse JSON
-    // - Return loaded Configuration with user settings
-    
-    default_config
+    let path = config_file_path(data_path);
+    fs::read_to_string(path)
+        .ok()
+        .and_then(|contents| serde_json::from_str::<Configuration>(&contents).ok())
+        .map(|mut config| {
+            if config.data_path.is_empty() {
+                config.data_path = data_path.to_string();
+            }
+            config
+        })
+        .unwrap_or_else(|| Configuration {
+            data_path: data_path.to_string(),
+            ..Configuration::default()
+        })
 }
 
-/// Save configuration to JSON file.
+/// Save configuration as JSON. Returns false if the directory or file cannot be written.
 pub fn save_config(config: &Configuration, data_path: &str) -> bool {
-    // For now, always return true (would be replaced by actual file I/O in production)
-    // In real implementation:
-    // - Construct full path: data_path + "/" + CONFIG_FILE_NAME
-    // - Write JSON content to file
-    
-    true
+    save_config_to_path(config, data_path).is_ok()
 }
 
-/// Save configuration with the given data path.
+/// Save configuration and propagate filesystem errors.
+pub fn save_config_to_path(config: &Configuration, data_path: &str) -> std::io::Result<()> {
+    fs::create_dir_all(data_path)?;
+    let contents = serde_json::to_vec_pretty(config)
+        .map_err(std::io::Error::other)?;
+    fs::write(config_file_path(data_path), contents)
+}
+
+/// Backwards-compatible helper; errors are intentionally ignored by this legacy void API.
 pub fn save_config_with_path(config: &Configuration, data_path: &str) {
-    // Stub implementation (real code will handle file I/O)
+    let _ = save_config(config, data_path);
 }
 
 #[cfg(test)]
@@ -86,13 +102,18 @@ mod tests {
         assert_eq!(config.theme, "system");
         assert_eq!(config.language, "en");
         assert!(config.check_for_updates);
-        assert!(config.start_with_windows);
+        assert!(!config.start_with_windows);
     }
 
     #[test]
     fn test_load_save_config() {
-        let config = Configuration::default();
-        config.save(&"C:\\Users\\steve\\AppData\\Roaming".to_string());
-        // TODO: Verify JSON serialization/deserialization works correctly
+        let directory = std::env::temp_dir().join(format!("soundswap-config-{}", std::process::id()));
+        let path = directory.to_string_lossy().to_string();
+        let mut config = Configuration::default();
+        config.language = "fr".to_string();
+        config.save(&path).expect("configuration should save");
+        let loaded = load_config(&path);
+        assert_eq!(loaded.language, "fr");
+        let _ = fs::remove_dir_all(directory);
     }
 }
