@@ -3,7 +3,7 @@
 pub mod core;
 
 use crate::core::audio_service::{self, AudioDevice};
-use crate::core::config::{self, Configuration, ConfigurationItem};
+use crate::core::config::{self, Configuration};
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
