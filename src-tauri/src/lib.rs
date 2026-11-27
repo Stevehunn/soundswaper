@@ -45,6 +45,53 @@ fn save_configuration(
         .map_err(|error| format!("Could not save SoundSwaper settings: {error}"))
 }
 
+#[derive(serde::Serialize)]
+struct UpdateCheckResult {
+    current_version: String,
+    latest_version: String,
+    update_available: bool,
+    release_url: String,
+}
+
+/// Check the latest published GitHub release against the running application version.
+#[tauri::command]
+async fn check_for_updates(app: tauri::AppHandle) -> Result<UpdateCheckResult, String> {
+    let options = crate::core::updater::UpdateOptions::default();
+    let current_version = app.package_info().version.to_string();
+    let client = reqwest::Client::builder()
+        .user_agent("SoundSwaper")
+        .build()
+        .map_err(|error| format!("Could not create update checker: {error}"))?;
+
+    let release = match crate::core::updater::check_for_updates(&options, client).await {
+        Ok(release) => release,
+        Err(error) if error.status() == Some(reqwest::StatusCode::NOT_FOUND) => {
+            return Err("No published GitHub release is available yet.".to_string());
+        }
+        Err(error) => return Err(format!("Could not check for updates: {error}")),
+    };
+
+    let latest_version = if release.tag_name.is_empty() {
+        release.version
+    } else {
+        release.tag_name
+    };
+    let update_available =
+        crate::core::updater::is_outdated(&current_version, &latest_version);
+    let release_url = if release.url.is_empty() {
+        options.releases_page_url()
+    } else {
+        release.url
+    };
+
+    Ok(UpdateCheckResult {
+        current_version,
+        latest_version,
+        update_available,
+        release_url,
+    })
+}
+
 /// Return whether SoundSwaper is registered to start when the user signs in to Windows.
 #[tauri::command]
 fn get_start_with_windows(app: tauri::AppHandle) -> Result<bool, String> {
@@ -237,6 +284,7 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             load_configuration,
             save_configuration,
+            check_for_updates,
             get_start_with_windows,
             set_start_with_windows,
             get_audio_devices,
