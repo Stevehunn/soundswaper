@@ -1,66 +1,31 @@
-# GitHub Release Workflow for SoundSwap Rust
+name: Build & Release
 
 on:
   push:
     tags:
-      - 'v*'
-      
-name: Build & Release
+      - "v*"
+
+permissions:
+  contents: write
 
 jobs:
   release:
-    runs-on: ubuntu-latest
-    
-    permissions:
-      contents: write
-      id-token: write
-      
+    runs-on: windows-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-        
-      - name: Set up Rust toolchain
-        uses: dtolnay/rust-action@latest
-        with:
-          toolchain: stable
-      
-      - name: Install tauri CLI
-        run: cargo install tauri-cli --locked
-      
-      - name: Configure Git credentials for GitHub releases
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-      
-      - name: Build release
-        env:
-          TAURI_PRIVATE_KEY: ${{ secrets.TAURI_PRIVATE_KEY }}
-          TAURI_KEY_PASSWORD: ${{ secrets.TAURI_KEY_PASSWORD }}
-        run: |
-          cargo tauri build --release
-      
-      - name: List release bundle files
-        run: ls -la target/tauri/bundle/msi/*/SoundSwap-*.msi
-        
-      - name: Generate changelog entry (stub)
-        id: changelog
-        run: echo "Version ${GITHUB_REF#refs/tags/v}" > ${{ github.workspace }}/CHANGELOG.md
-      
-      - name: Upload MSI installer to GitHub release
-        uses: softprops/action-gh-release@v1
+
+      - name: Set up stable Rust
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Install Tauri CLI
+        run: cargo install tauri-cli --version "^2" --locked
+
+      - name: Build Windows installers
+        run: cargo tauri build
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
         with:
           files: |
-            target/tauri/bundle/msi/*/SoundSwap-*.msi
-            
-      - name: Create GitHub release with changelog
-        run: |
-          git tag v${{ github.ref_name }}
-          git push origin ${GH_TOKEN}
-      
-  notify-release:
-    needs: release
-    runs-on: ubuntu-latest
-    
-    steps:
-      - name: Check for new releases
-        run: echo "Check GitHub Releases for updates"
+            target/release/bundle/msi/*.msi

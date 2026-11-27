@@ -10,7 +10,7 @@ pub struct Presets {
 }
 
 /// Color values for a custom theme.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CustomThemeColors {
     /// Background color (hex string).
     pub background: String,
@@ -22,8 +22,19 @@ pub struct CustomThemeColors {
     pub accent: String,
 }
 
+impl Default for CustomThemeColors {
+    fn default() -> Self {
+        Self {
+            background: "#1a1a2e".to_string(),
+            cards: "#16213e".to_string(),
+            text: "#eaeaea".to_string(),
+            accent: "#0f3460".to_string(),
+        }
+    }
+}
+
 /// Theme configuration (dark/light/system/custom).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Theme {
     Dark,
     Light,

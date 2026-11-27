@@ -3,28 +3,15 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>SoundSwap</title>
-  
-  <!-- Tauri + Tailwind CSS -->
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.0/dist/tailwind.min.css" />
+  <meta name="color-scheme" content="dark light" />
+  <title>SoundSwaper</title>
   <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body class="bg-gray-900 text-white font-sans min-h-screen flex flex-col">
-
-  <!-- Splash Screen (Tauri v2 handles it automatically) -->
-  <!-- Falls back to this overlay if needed -->
-
-  <!-- Top Bar -->
-  <header class="bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 rounded-t-lg shadow-md">
+  <style>
     .card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.15); }
-    
-    /* Custom scrollbar for modern look */
     ::-webkit-scrollbar { width: 8px; height: 8px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: rgba(200,200,200,0.3); border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: rgba(200,200,200,0.5); }
-    
-    /* Smooth fade animations */
     @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
     .fade-in { animation: fadeIn 0.3s ease-out; }
   </style>
@@ -53,7 +40,9 @@
     
     <!-- Configurations Grid (Cards) -->
     <div id="configsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-5xl mx-auto w-full fade-in">
-      <!-- Cards will be injected by JavaScript -->
+      <p class="col-span-full rounded-lg border border-gray-700 bg-gray-800 p-6 text-center text-gray-300">
+        Audio device detection is not available yet. The Windows WASAPI backend still needs to be implemented.
+      </p>
     </div>
 
   </main>

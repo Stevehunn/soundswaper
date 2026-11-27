@@ -1,29 +1,24 @@
 {
+  "$schema": "https://schema.tauri.app/config/2",
   "productName": "SoundSwaper",
   "version": "1.0.0",
   "identifier": "com.soundswaper.windows",
   "build": {
     "beforeBuildCommand": "",
-    "beforeDevCommand": ""
+    "beforeDevCommand": "",
+    "frontendDist": "src-tauri/frontend"
+  },
+  "app": {
+    "windows": [
+      {
+        "title": "SoundSwaper"
+      }
+    ]
   },
   "bundle": {
     "active": true,
     "targets": [
       "msi"
     ]
-  },
-  "windows": [
-    {
-      "title": "SoundSwaper"
-    }
-  ],
-  "splashScreen": {
-    "imageSrc": "/assets/banners/Sounswap-logo.jpg",
-    "transparent": true,
-    "fullScreen": true,
-    "time": 5000
-  },
-  "updater": {
-    "active": true
   }
 }

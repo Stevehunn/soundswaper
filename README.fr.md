@@ -13,17 +13,26 @@ Gratuit, open source ([MIT](LICENSE)), de la famille [SoundDeck](https://soundde
 
 ---
 
-## Fonctionnalités
+## État actuel du portage Rust
 
-- **Configurations**: un nom + périphérique de sortie + entrée (raccourci facultatif), affichés en cartes que l'on peut glisser pour réordonner
-- **Raccourcis globaux**: un raccourci « configuration suivante » par config, actifs même fenêtre réduite ou masquée
-- **Zone de notification**: clic gauche = ouvrir la fenêtre, clic droit = changer de configuration
-- **Thèmes**: sombre/clair/système/personnalisé (4 couleurs, aperçu en direct)
-- **Langues**: Anglais + Français (support minimal, ajoutable plus tard)
-- **Mises à jour intégrées**: bouton *Nouvelle version disponible* télécharge la dernière release GitHub (SHA-256 vérifiée)
-- **Start with Windows** (minimisé), instance unique, notification facultaire sur chaque changement
+- **Application Tauri 2** : point d'entrée et chargement du frontend configurés.
+- **Configuration** : lecture et sauvegarde JSON implémentées.
+- **Mises à jour** : récupération des métadonnées GitHub et vérification SHA-256 implémentées côté Rust ; téléchargement et installation non intégrés.
+- **Audio Windows (WASAPI)** : non implémenté. Le service ne renvoie volontairement aucun périphérique plutôt que de présenter de faux appareils.
+- **Raccourcis globaux et zone de notification** : non implémentés.
+- **Interface** : squelette HTML ; elle n'est pas encore reliée aux commandes Rust de gestion des périphériques.
+
+Les fonctionnalités de l'ancienne application .NET ne sont donc pas encore toutes disponibles dans cette réécriture.
 
 ---
+
+## Performances
+
+Aucun benchmark fiable de la version Rust n'a encore été réalisé. Les objectifs de taille mémoire et de temps de démarrage restent à mesurer.
+
+---
+
+
 
 ## Performance vs Application .NET Originale
 
@@ -40,18 +49,18 @@ Gratuit, open source ([MIT](LICENSE)), de la famille [SoundDeck](https://soundde
 
 ### De GitHub Releases (Recommandé)
 
-1. Téléchargez **[SoundSwap-<version>-win-x64-portable.zip](https://github.com/Stevehunn/soundswaper/releases/latest)** ou **[SoundSwap-Setup-<version>.exe](https://github.com/Stevehunn/soundswaper/releases/latest)** depuis la dernière release
+1. Les packages d'installation ne sont pas encore publiés pour cette réécriture Rust. Consultez les releases après la mise en place de la chaîne de publication.
 2. Décompressez dans n'importe quel dossier (portable) ou lancez l'installeur (MSI)
 3. Double-cliquez `SoundSwap.exe` et vous êtes prêt!
 
 ### Requirements
 
 - **Windows 10 ou Windows 11** (64 bits)
-- Pas d'installation de pilotes nécessaire (utilise WASAPI pour l'accès aux périphériques audio)
+- La couche WASAPI devra utiliser les API audio Windows ; elle n'est pas encore disponible.
 
 ---
 
-## Guide Utilisateur
+## Guide utilisateur (à finaliser après l'intégration audio)
 
 ### Créer des Configurations
 
@@ -101,10 +110,10 @@ cd c:\Dev\soundswaper
 cargo tauri dev
 
 # Build release (installeur)
-cargo tauri build --release
+cargo tauri build
 
 # Lancer tous les tests (local)
-cargo test --workspace
+cargo test
 ```
 
 ---
@@ -134,10 +143,10 @@ soundswaper/
 
 ## Confidentialité & Mises à jour
 
-SoundSwap fait **une seule requête réseau** par 12 heures: vérifie les nouvelles releases de GitHub.  
+Le contrôle de version GitHub est présent dans le module Rust, mais il n'est pas encore appelé par l'interface.  
 - **Pas de télémétrie**: Aucun utilisateur, analytics ou tracking
 - **Pas de compte**: Pas de connexion nécessaire (repo public MIT)
-- **Vérification SHA-256**: Les téléchargements sont vérifiés pour l'intégrité
+- **Vérification SHA-256**: la fonction de vérification est implémentée ; le flux de téléchargement reste à intégrer
 
 ---
 
