@@ -176,32 +176,60 @@
             customizeTheme: "Personnaliser le thème" }
     };
 
-    // Change language function
-    function changeLanguage(lang) {
-      const t = translations[lang];
+    // Apply a language without changing persisted settings (used during startup).
+    function applyLanguage(lang) {
+      const selectedLanguage = translations[lang] ? lang : 'en';
+      const t = translations[selectedLanguage];
+      document.getElementById('languageSelect').value = selectedLanguage;
+      document.documentElement.lang = selectedLanguage;
       document.querySelectorAll('[data-i18n]').forEach(el => {
         el.textContent = t[el.dataset.i18n] || '';
       });
-      localStorage.setItem('soundswap_language', lang);
     }
 
-    // Toggle theme function
-    function toggleTheme() {
-      const btn = document.getElementById('themeToggle');
-      btn.innerHTML = btn.innerHTML === '🌙' ? '☀️' : '🌙';
-      
-      if (btn.innerHTML === '☀️') {
-        document.body.className = 'bg-gray-100 text-gray-900 font-sans min-h-screen flex flex-col';
-        // Update footer color too
-        document.querySelector('footer').classList.remove('bg-gray-800', 'text-white');
-        document.querySelector('footer').classList.add('bg-blue-600', 'text-white');
-      } else {
-        document.body.className = 'bg-gray-900 text-white font-sans min-h-screen flex flex-col';
-        document.querySelector('footer').classList.remove('bg-blue-600', 'text-white');
-        document.querySelector('footer').classList.add('bg-gray-800', 'text-white');
+    // Persist language changes in the native application configuration.
+    async function changeLanguage(lang) {
+      applyLanguage(lang);
+      localStorage.setItem('soundswap_language', lang);
+      if (!appConfiguration) return;
+      const previousLanguage = appConfiguration.language;
+      appConfiguration.language = translations[lang] ? lang : 'en';
+      try {
+        await persistConfiguration();
+      } catch (error) {
+        appConfiguration.language = previousLanguage;
+        applyLanguage(previousLanguage);
+        showAudioStatus('Could not save language preference: ' + String(error), true);
       }
-      
-      localStorage.setItem('soundswap_theme', btn.innerHTML);
+    }
+
+    function applyTheme(theme) {
+      const isLight = theme === 'light';
+      const btn = document.getElementById('themeToggle');
+      const footer = document.querySelector('footer');
+      btn.innerHTML = isLight ? '☀️' : '🌙';
+      document.body.className = isLight
+        ? 'bg-gray-100 text-gray-900 font-sans min-h-screen flex flex-col'
+        : 'bg-gray-900 text-white font-sans min-h-screen flex flex-col';
+      footer.classList.remove('bg-gray-800', 'bg-blue-600');
+      footer.classList.add(isLight ? 'bg-blue-600' : 'bg-gray-800', 'text-white');
+      localStorage.setItem('soundswap_theme', isLight ? 'light' : 'dark');
+    }
+
+    // Persist theme changes in the native application configuration.
+    async function toggleTheme() {
+      const previousTheme = appConfiguration?.theme || 'system';
+      const nextTheme = previousTheme === 'light' ? 'dark' : 'light';
+      applyTheme(nextTheme);
+      if (!appConfiguration) return;
+      appConfiguration.theme = nextTheme;
+      try {
+        await persistConfiguration();
+      } catch (error) {
+        appConfiguration.theme = previousTheme;
+        applyTheme(previousTheme === 'light' ? 'light' : 'dark');
+        showAudioStatus('Could not save theme preference: ' + String(error), true);
+      }
     }
 
     // Show update dialog
@@ -379,10 +407,16 @@
       try {
         appConfiguration = await getTauriInvoke()('load_configuration');
         appConfiguration.configurations ||= [];
+        appConfiguration.language ||= 'en';
+        appConfiguration.theme ||= 'system';
+        applyLanguage(appConfiguration.language);
+        applyTheme(appConfiguration.theme);
         renderAudioProfiles();
       } catch (error) {
         showAudioStatus('Could not load saved profiles: ' + String(error), true);
         appConfiguration = { configurations: [], theme: 'system', language: 'en', check_for_updates: true, start_with_windows: false, data_path: '' };
+        applyLanguage(appConfiguration.language);
+        applyTheme(appConfiguration.theme);
         renderAudioProfiles();
       }
     }
