@@ -42,7 +42,7 @@ cargo test
 - SHA-256 verification is implemented for downloaded file data.
 - **Windows audio endpoint discovery is implemented** through the Core Audio MMDevice API: active playback and capture endpoints, friendly names, stable endpoint IDs, and current Console defaults.
 - **Changing the Windows default input/output endpoint is implemented** through the COM `IPolicyConfig` interface. This interface is undocumented by Microsoft, so Windows-version compatibility must be verified on physical Windows machines. SoundSwaper currently applies the selected endpoint to the Console, Multimedia, and Communications roles.
-- The audio core APIs are not yet exposed as Tauri commands or connected to the frontend.
+- Audio endpoint listing, default-device lookup, and device switching are exposed as Tauri commands and connected to the frontend selectors.
 - Global shortcuts and system-tray integration are not implemented yet.
 
 The project is under active development. Do not treat the feature list of the original .NET application as a statement that all features are available in this Rust rewrite.
