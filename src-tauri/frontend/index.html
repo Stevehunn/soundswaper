@@ -40,9 +40,48 @@
     
     <!-- Configurations Grid (Cards) -->
     <div id="configsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-5xl mx-auto w-full fade-in">
-      <p class="col-span-full rounded-lg border border-gray-700 bg-gray-800 p-6 text-center text-gray-300">
-        Audio device detection is not available yet. The Windows WASAPI backend still needs to be implemented.
-      </p>
+      <section class="col-span-full rounded-xl border border-gray-700 bg-gray-800 p-5 shadow-lg">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
+          <div>
+            <h2 class="text-lg font-semibold">Audio devices</h2>
+            <p class="text-sm text-gray-400">Choose the default playback and recording devices.</p>
+          </div>
+          <button id="refreshAudioButton" onclick="refreshAudioDevices()"
+                  class="rounded bg-gray-700 hover:bg-gray-600 px-3 py-2 text-sm transition-colors">
+            Refresh devices
+          </button>
+        </div>
+
+        <p id="audioStatus" role="status" aria-live="polite" class="hidden mb-4 rounded-lg p-3 text-sm"></p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="rounded-lg border border-gray-700 bg-gray-900/60 p-4">
+            <label for="outputDeviceSelect" class="block text-sm font-medium mb-2">Output device</label>
+            <select id="outputDeviceSelect"
+                    class="w-full rounded bg-gray-800 border border-gray-600 px-3 py-2 text-sm text-white">
+              <option value="">Loading playback devices…</option>
+            </select>
+            <button onclick="applyAudioDevice('output')"
+                    class="mt-3 w-full rounded bg-blue-600 hover:bg-blue-700 px-3 py-2 text-sm font-medium transition-colors">
+              Set as default output
+            </button>
+            <p id="outputCurrent" class="mt-2 text-xs text-gray-400">Current default: loading…</p>
+          </div>
+
+          <div class="rounded-lg border border-gray-700 bg-gray-900/60 p-4">
+            <label for="inputDeviceSelect" class="block text-sm font-medium mb-2">Input device</label>
+            <select id="inputDeviceSelect"
+                    class="w-full rounded bg-gray-800 border border-gray-600 px-3 py-2 text-sm text-white">
+              <option value="">Loading recording devices…</option>
+            </select>
+            <button onclick="applyAudioDevice('input')"
+                    class="mt-3 w-full rounded bg-purple-600 hover:bg-purple-700 px-3 py-2 text-sm font-medium transition-colors">
+              Set as default input
+            </button>
+            <p id="inputCurrent" class="mt-2 text-xs text-gray-400">Current default: loading…</p>
+          </div>
+        </div>
+      </section>
     </div>
 
   </main>
@@ -181,6 +220,85 @@
     function closeColorPicker() {
       document.getElementById('colorPicker').classList.add('hidden');
     }
+    function showAudioStatus(message, isError = false) {
+      const status = document.getElementById('audioStatus');
+      status.textContent = message;
+      status.className = 'mb-4 rounded-lg p-3 text-sm ' +
+        (isError ? 'bg-red-900/60 text-red-200 border border-red-700' : 'bg-green-900/50 text-green-200 border border-green-700');
+    }
+
+    function getTauriInvoke() {
+      const invoke = window.__TAURI__?.core?.invoke;
+      if (!invoke) {
+        throw new Error('The audio controls are available when SoundSwaper is running as a desktop app.');
+      }
+      return invoke;
+    }
+
+    async function loadAudioDirection(deviceType) {
+      const invoke = getTauriInvoke();
+      const select = document.getElementById(deviceType + 'DeviceSelect');
+      const current = document.getElementById(deviceType + 'Current');
+      const devices = await invoke('get_audio_devices', { deviceType });
+      const defaultDevice = await invoke('get_default_audio_device', { deviceType });
+
+      select.replaceChildren();
+      for (const device of devices) {
+        const option = document.createElement('option');
+        option.value = device.hardware_id;
+        option.textContent = device.name;
+        select.appendChild(option);
+      }
+
+      if (devices.length === 0) {
+        const option = document.createElement('option');
+        option.value = '';
+        option.textContent = 'No active devices found';
+        select.appendChild(option);
+      } else {
+        select.value = defaultDevice.hardware_id;
+      }
+
+      current.textContent = 'Current default: ' + defaultDevice.name;
+    }
+
+    async function refreshAudioDevices() {
+      const button = document.getElementById('refreshAudioButton');
+      button.disabled = true;
+      button.textContent = 'Refreshing…';
+      try {
+        await Promise.all([loadAudioDirection('output'), loadAudioDirection('input')]);
+        showAudioStatus('Audio devices loaded successfully.');
+      } catch (error) {
+        showAudioStatus(String(error), true);
+        for (const type of ['output', 'input']) {
+          document.getElementById(type + 'DeviceSelect').innerHTML = '<option value="">Unable to load devices</option>';
+          document.getElementById(type + 'Current').textContent = 'Current default: unavailable';
+        }
+      } finally {
+        button.disabled = false;
+        button.textContent = 'Refresh devices';
+      }
+    }
+
+    async function applyAudioDevice(deviceType) {
+      const select = document.getElementById(deviceType + 'DeviceSelect');
+      const deviceId = select.value;
+      if (!deviceId) {
+        showAudioStatus('Select an audio device first.', true);
+        return;
+      }
+
+      try {
+        await getTauriInvoke()('set_default_audio_device', { deviceType, deviceId });
+        await loadAudioDirection(deviceType);
+        showAudioStatus('Default ' + deviceType + ' device updated.');
+      } catch (error) {
+        showAudioStatus(String(error), true);
+      }
+    }
+
+    refreshAudioDevices();
   </script>
 
 </body>
