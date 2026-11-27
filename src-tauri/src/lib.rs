@@ -9,6 +9,7 @@ use tauri::{
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
     Emitter, Manager, WindowEvent,
 };
+use tauri_plugin_autostart::ManagerExt as AutostartManagerExt;
 use tauri_plugin_global_shortcut::{
     Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState,
 };
@@ -42,6 +43,40 @@ fn save_configuration(
     configuration.data_path = directory.clone();
     config::save_config_to_path(&configuration, &directory)
         .map_err(|error| format!("Could not save SoundSwaper settings: {error}"))
+}
+
+/// Return whether SoundSwaper is registered to start when the user signs in to Windows.
+#[tauri::command]
+fn get_start_with_windows(app: tauri::AppHandle) -> Result<bool, String> {
+    app.autolaunch().is_enabled()
+        .map_err(|error| format!("Could not read Windows startup registration: {error}"))
+}
+
+/// Enable or disable Windows startup and persist the resulting preference.
+#[tauri::command]
+fn set_start_with_windows(app: tauri::AppHandle, enabled: bool) -> Result<(), String> {
+    let previous = app.autolaunch().is_enabled()
+        .map_err(|error| format!("Could not read Windows startup registration: {error}"))?;
+    if previous != enabled {
+        let manager = app.autolaunch();
+        let result = if enabled { manager.enable() } else { manager.disable() };
+        result.map_err(|error| format!("Could not update Windows startup registration: {error}"))?;
+    }
+    let directory = app.path().app_config_dir()
+        .map_err(|error| format!("Could not resolve the application config directory: {error}"))?;
+    let directory = directory.to_string_lossy().to_string();
+    let mut configuration = config::load_config(&directory);
+    configuration.start_with_windows = enabled;
+    configuration.data_path = directory.clone();
+    if let Err(error) = config::save_config_to_path(&configuration, &directory) {
+        let manager = app.autolaunch();
+        let rollback = if previous { manager.enable() } else { manager.disable() };
+        let rollback_message = rollback.err()
+            .map(|e| format!(" Startup rollback also failed: {e}"))
+            .unwrap_or_default();
+        return Err(format!("Could not save Windows startup preference: {error}.{rollback_message}"));
+    }
+    Ok(())
 }
 
 /// Return active endpoints for the requested direction ("input" or "output").
@@ -167,6 +202,11 @@ pub fn run() {
 
     let app = tauri::Builder::default()
         .plugin(
+            tauri_plugin_autostart::Builder::new()
+                .app_name("SoundSwaper")
+                .build(),
+        )
+        .plugin(
             tauri_plugin_global_shortcut::Builder::new()
                 .with_handler(move |app, shortcut, event| {
                     if event.state() != ShortcutState::Pressed {
@@ -197,6 +237,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             load_configuration,
             save_configuration,
+            get_start_with_windows,
+            set_start_with_windows,
             get_audio_devices,
             get_default_audio_device,
             set_default_audio_device
