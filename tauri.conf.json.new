@@ -1,0 +1,77 @@
+{
+  "productName": {
+    "name": "SoundSwaper"
+  },
+  "version": "1.0.0",
+  "identifier": "com.soundswaper.windows",
+  "build": {
+    "beforeBuildCommand": "",
+    "beforeDevCommand": ""
+  },
+  "bundle": {
+    "active": true,
+    "identifier": "com.soundswaper.windows",
+    "shortDescription": "SoundSwaper - Switch audio devices with shortcut",
+    "description": "Changes default Windows input/output audio devices on the fly.",
+    "copyright": "2026 Stevehunn - MIT License",
+    "publisherName": "Stevehunn",
+    "longDescription": "Switch your microphone and headset (or speakers) instantly via keyboard shortcut. No driver installation needed, runs in notification area.",
+    "targets": ["msi"]
+  },
+  "product": {
+    "name": "SoundSwaper",
+    "version": "1.0.0"
+  },
+  "tauri": {
+    "allowlist": {
+      "all": false,
+      "clipboard": {
+        "write": true
+      }
+    },
+    "security": {
+      "csp": "default-src 'self'"
+    },
+    "plugins": [
+      {
+        "name": "tray",
+        "path": "../tauri-plugins/tray-plugin"
+      },
+      {
+        "name": "hotkey",
+        "path": "../tauri-plugins/hotkey-plugin"
+      }
+    ],
+    "windows": [
+      {
+        "title": "SoundSwaper",
+        "width": 600,
+        "height": 450,
+        "resizable": true,
+        "minimizable": true,
+        "startMinimized": false
+      }
+    ],
+    "splashScreen": {
+      "imageSrc": "/assets/banners/sounswap-logo.png",
+      "transparent": true,
+      "fullScreen": true,
+      "time": 5000
+    },
+    "updater": {
+      "active": true,
+      "endpoints": [
+        "https://github.com/Stevehunn/soundswaper/releases/latest"
+      ],
+      "followRedirects": true,
+      "framework": "default",
+      "installPath": "bundle"
+    },
+    "bundler": {
+      "identity": {
+        "name": "SoundSwaper",
+        "vendorName": "Stevehunn"
+      }
+    }
+  }
+}

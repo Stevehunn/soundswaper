@@ -8,10 +8,14 @@
   <!-- Tauri + Tailwind CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4.0.0/dist/tailwind.min.css" />
   <script src="https://cdn.tailwindcss.com"></script>
-  
-  <style>
-    /* Custom animations & transitions */
-    .card { transition: all 0.2s ease; }
+</head>
+<body class="bg-gray-900 text-white font-sans min-h-screen flex flex-col">
+
+  <!-- Splash Screen (Tauri v2 handles it automatically) -->
+  <!-- Falls back to this overlay if needed -->
+
+  <!-- Top Bar -->
+  <header class="bg-gradient-to-r from-blue-600 to-purple-600 px-4 py-2 rounded-t-lg shadow-md">
     .card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.15); }
     
     /* Custom scrollbar for modern look */

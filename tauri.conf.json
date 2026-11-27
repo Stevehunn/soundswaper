@@ -1,87 +1,29 @@
 {
-  "$schema": "https://raw.githubusercontent.com/TAIR-Dev/tauri/main/schemas/v2/tauri.json",
-  "productName": {
-    "name": "SoundSwap"
-  },
+  "productName": "SoundSwaper",
   "version": "1.0.0",
-  "identifier": "com.soundswap.windows",
+  "identifier": "com.soundswaper.windows",
   "build": {
     "beforeBuildCommand": "",
-    "beforeDevCommand": "",
-    "devPath": "http://localhost:1420",
-    "distDir": "../src-tauri/frontend/dist",
-    "withGlobalTauri": false
+    "beforeDevCommand": ""
   },
   "bundle": {
-    "active": true,                    // Generate installer.exe
-    "identifier": "com.soundswap.windows",
-    "shortDescription": "Switch your Windows microphone and headset with keyboard shortcuts",
-    "description": "SoundSwap changes the default input/output audio devices on the fly. MIT licensed.",
-    "longDescription": "SoundSwap lets you switch your default audio input and output devices instantly via a single keyboard shortcut. No driver installation needed, just run and forget.",
-    "copyright": "2026 Stevehunn - MIT License",
-    "publisherName": "Stevehunn",
-    "shortCategory": "Entertainment",
-    "longCategory": "Multimedia > Audio",
-    "targets": ["msi"],              // MSI installer + NSIS portable EXE optional
-    "windows": {
-      "wixTools": {
-        "license": "https://github.com/Stevehunn/soundswaper/blob/main/LICENSE"
-      }
-    }
+    "active": true,
+    "targets": [
+      "msi"
+    ]
   },
-  "product": {
-    "name": "SoundSwap",
-    "version": "1.0.0"              // Auto-filled from git tag at release time
-  },
-  "tauri": {
-    "allowlist": {
-      "all": false,
-      "clipboard": { "write": true }, // For theme customization via color picker
-      "shell": { "open": true }       // For updater dialog
-    },
-    "security": {
-      "csp": "default-src 'self'"     // Content security policy - only load from trusted sources
-    },
-    "plugins": [
-      {
-        "name": "tray",
-        "path": "../tauri-plugins/tray-plugin"
-      },
-      {
-        "name": "hotkey",
-        "path": "../tauri-plugins/hotkey-plugin"
-      }
-    ],
-    "windows": [
-      {
-        "title": "SoundSwap",
-        "width": 600,
-        "height": 450,
-        "resizable": true,
-        "minimizable": true,
-        "startMinimized": false       // Always open window initially (tray fallback)
-      }
-    ],
-    "splashScreen": {
-      "imageSrc": "/assets/banners/sounswap-logo.png",  // Use user-provided logo
-      "transparent": true,                    // Logo on transparent background
-      "fullScreen": true,                     // Cover entire screen (not just title bar)
-      "time": 5000                            // Show for 5 seconds, then fade to main content
-    },
-    "updater": {
-      "active": true,                 // Built-in update checker (like original .NET app)
-      "endpoints": [
-        "https://github.com/Stevehunn/soundswaper/releases/latest"  // Auto-check latest release
-      ],
-      "followRedirects": true,
-      "framework": "default",         // Built-in updater UI + download dialog
-      "installPath": "bundle"         // Install alongside existing app (or replace)
-    },
-    "bundler": {
-      "identity": {
-        "name": "SoundSwap",
-        "vendorName": "Stevehunn"
-      }
+  "windows": [
+    {
+      "title": "SoundSwaper"
     }
+  ],
+  "splashScreen": {
+    "imageSrc": "/assets/banners/Sounswap-logo.jpg",
+    "transparent": true,
+    "fullScreen": true,
+    "time": 5000
+  },
+  "updater": {
+    "active": true
   }
 }

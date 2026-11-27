@@ -1,0 +1,59 @@
+@echo off
+cd /d c:\Dev\soundswaper
+
+(
+    {
+        "productName": {
+            "name": "SoundSwaper"
+        },
+        "version": "1.0.0",
+        "identifier": "com.soundswaper.windows",
+        "build": {
+            "beforeBuildCommand": "",
+            "beforeDevCommand": ""
+        },
+        "bundle": {
+            "active": true,
+            "targets": ["msi"]
+        },
+        "tauri": {
+            "allowlist": {
+                "all": false,
+                "clipboard": {
+                    "write": true
+                }
+            },
+            "security": {
+                "csp": "default-src 'self'"
+            },
+            "windows": [
+                {
+                    "title": "SoundSwaper",
+                    "width": 600,
+                    "height": 450,
+                    "resizable": true,
+                    "minimizable": true,
+                    "startMinimized": false
+                }
+            ],
+            "splashScreen": {
+                "imageSrc": "/assets/banners/sounswap-logo.png",
+                "transparent": true,
+                "fullScreen": true,
+                "time": 5000
+            },
+            "updater": {
+                "active": true,
+                "endpoints": [
+                    "https://github.com/Stevehunn/soundswaper/releases/latest"
+                ],
+                "followRedirects": true,
+                "framework": "default",
+                "installPath": "bundle"
+            }
+        }
+    }
+) | ConvertFrom-Json | ConvertTo-Json > tauri.conf.json
+
+echo Configuration saved successfully!
+pause

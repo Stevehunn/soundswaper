@@ -4,29 +4,17 @@ version = "0.1.0"
 edition = "2021"
 description = "Switch your Windows audio input/output devices with keyboard shortcuts"
 
-[workspace]
-members = [
-    "src-core",
-    "tauri-plugins/tray-plugin",
-]
+[lib]
+path = "src-tauri/src/lib.rs"
+crate-type = ["cdylib", "rlib"]
 
-[dependencies]
-# Tauri 2.x core
-tauri = { version = "^2.0.0", features = ["all"] }
-serde = { version = "^1.0", features = ["derive"] }
-serde_json = { version = "^1.0" }
-sha1 = "0.10"
-hex = { version = "^0.4" }
-reqwest = { version = "^0.11", default-features = false, features = ["json"] }
-chrono = { version = "^0.4", default-features = false }
-tokio = { version = "^1.35", features = ["full"] }
+[profile.release]
+opt-level = 3
+lto = true
+codegen-units = 1
+panic = 'abort'
+strip = true
 
-# Windows audio device access
-winapi = { version = "^0.96", features = ["corewindows", "winuser", "windef", "winbase"] }
-
-# Configuration management
-dirs = { version = "^6.0" }
-
-# Input validation
-regex = { version = "^1.10" }
+[build-dependencies]
+tauri-build = { version = "2.0", features = [] }
 
