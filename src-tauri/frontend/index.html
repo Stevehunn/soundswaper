@@ -148,9 +148,10 @@
   <!-- Hidden update dialog -->
   <div id="updateDialog" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center z-50">
     <div class="bg-gray-900 border border-gray-700 rounded-lg p-6 max-w-md w-full text-center fade-in">
-      <h2 class="text-xl font-bold mb-3" data-i18n="newVersionAvailable">New version available!</h2>
-      <p id="updateMessage" class="text-gray-300 mb-4"></p>
-      <button onclick="closeUpdateDialog()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors">
+      <h2 class="text-xl font-bold mb-3" data-i18n="updateDialogTitle">Software update</h2>
+      <p id="updateMessage" class="text-gray-300 mb-4" aria-live="polite"></p>
+      <a id="updateReleaseLink" class="hidden inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors mb-3" target="_blank" rel="noopener noreferrer" data-i18n="openRelease">Open release page</a>
+      <button onclick="closeUpdateDialog()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded transition-colors">
         Close
       </button>
     </div>
@@ -185,10 +186,16 @@
     const translations = {
       en: { checkUpdates: "Check for updates", newVersionAvailable: "New version available!", 
              customizeTheme: "Customize Theme", startupTitle: "Startup", startWithWindows: "Launch SoundSwaper when I sign in to Windows",
-             startupDescription: "Start SoundSwaper automatically when you sign in to your Windows account." },
+             startupDescription: "Start SoundSwaper automatically when you sign in to your Windows account.",
+             updateChecking: "Checking GitHub for updates…", updateAvailable: "Version {version} is available. Download it from the official release page.",
+             updateCurrent: "SoundSwaper is up to date (version {version}).", updateCheckFailed: "Could not check for updates: {error}",
+             openRelease: "Open release page", updateDialogTitle: "Software update" },
       fr: { checkUpdates: "Vérifier les mises à jour", newVersionAvailable: "Nouvelle version disponible!",
             customizeTheme: "Personnaliser le thème", startupTitle: "Démarrage", startWithWindows: "Lancer SoundSwaper à l’ouverture de session Windows",
-            startupDescription: "Démarrer automatiquement SoundSwaper lorsque vous ouvrez votre session Windows." }
+            startupDescription: "Démarrer automatiquement SoundSwaper lorsque vous ouvrez votre session Windows.",
+            updateChecking: "Recherche des mises à jour sur GitHub…", updateAvailable: "La version {version} est disponible. Téléchargez-la depuis la page officielle des versions.",
+            updateCurrent: "SoundSwaper est à jour (version {version}).", updateCheckFailed: "Impossible de vérifier les mises à jour : {error}",
+            openRelease: "Ouvrir la page de téléchargement", updateDialogTitle: "Mise à jour du logiciel" }
     };
 
     // Apply a language without changing persisted settings (used during startup).
@@ -247,27 +254,37 @@
       }
     }
 
-    // Show update dialog
-    function checkForUpdates() {
+    // Check GitHub releases through the native Rust backend.
+    async function checkForUpdates() {
       const dialog = document.getElementById('updateDialog');
-      document.getElementById('updateMessage').textContent = `Checking for updates...`;
-      
-      // Call Rust updater backend (will fetch from GitHub API)
-      // Fetch('https://api.github.com/repos/Stevehunn/soundswaper/releases/latest')
-      //    .then(r => r.json())
-      //    .then(data => {
-      //      if (data.prerelease || data.draft) {
-      //        document.getElementById('updateMessage').textContent = 'No updates available.';
-      //        dialog.classList.add('hidden');
-      //      } else {
-      //        document.getElementById('updateMessage').textContent = `Version ${data.tag_name} is available!`;
-      //      }
-      //    })
-      //    .catch(() => {
-      //      document.getElementById('updateMessage').textContent = 'Could not check for updates.';
-      //    });
-      
+      const message = document.getElementById('updateMessage');
+      const releaseLink = document.getElementById('updateReleaseLink');
+      const button = document.getElementById('updateButton');
+      const label = button.querySelector('[data-i18n="checkUpdates"]');
+      const previousLabel = label.textContent;
+      button.disabled = true;
+      label.textContent = translations[document.documentElement.lang]?.updateChecking || 'Checking…';
+      message.textContent = translations[document.documentElement.lang]?.updateChecking || 'Checking for updates…';
+      releaseLink.classList.add('hidden');
       dialog.classList.remove('hidden');
+
+      try {
+        const result = await getTauriInvoke()('check_for_updates');
+        const t = translations[document.documentElement.lang] || translations.en;
+        if (result.update_available) {
+          message.textContent = t.updateAvailable.replace('{version}', result.latest_version);
+          releaseLink.href = result.release_url;
+          releaseLink.classList.remove('hidden');
+        } else {
+          message.textContent = t.updateCurrent.replace('{version}', result.current_version);
+        }
+      } catch (error) {
+        const t = translations[document.documentElement.lang] || translations.en;
+        message.textContent = t.updateCheckFailed.replace('{error}', String(error));
+      } finally {
+        button.disabled = false;
+        label.textContent = previousLabel;
+      }
     }
 
     function closeUpdateDialog() {
