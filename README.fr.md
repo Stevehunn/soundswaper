@@ -16,11 +16,11 @@ Gratuit, open source ([MIT](LICENSE)), de la famille [SoundDeck](https://soundde
 ## Fonctionnalités
 
 - **Configurations**: un nom + périphérique de sortie + entrée (raccourci facultatif), affichés en cartes que l'on peut glisser pour réordonner
-- **Raccourcis globaux**: un raccourci « configuration suivante » par config, actifs même fenêtre réduite ou masquée
-- **Zone de notification**: clic gauche = ouvrir la fenêtre, clic droit = changer de configuration
+- **Raccourcis globaux**: prévus, intégration encore à réaliser
+- **Zone de notification**: prévue, intégration encore à réaliser
 - **Thèmes**: sombre/clair/système/personnalisé (4 couleurs, aperçu en direct)
 - **Langues**: Anglais + Français (support minimal, ajoutable plus tard)
-- **Mises à jour intégrées**: bouton *Nouvelle version disponible* télécharge la dernière release GitHub (SHA-256 vérifiée)
+- **Mises à jour intégrées**: vérification de release et calcul SHA-256 côté Rust ; téléchargement et installation à intégrer
 - **Start with Windows** (minimisé), instance unique, notification facultaire sur chaque changement
 
 ---
@@ -47,7 +47,7 @@ Gratuit, open source ([MIT](LICENSE)), de la famille [SoundDeck](https://soundde
 ### Requirements
 
 - **Windows 10 ou Windows 11** (64 bits)
-- Pas d'installation de pilotes nécessaire (utilise WASAPI pour l'accès aux périphériques audio)
+- Pas d'installation de pilotes nécessaire (la couche WASAPI reste à implémenter)
 
 ---
 
@@ -101,10 +101,10 @@ cd c:\Dev\soundswaper
 cargo tauri dev
 
 # Build release (installeur)
-cargo tauri build --release
+cargo tauri build
 
 # Lancer tous les tests (local)
-cargo test --workspace
+cargo test
 ```
 
 ---
