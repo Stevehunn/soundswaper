@@ -40,8 +40,15 @@ cargo test
 - Configuration settings can be loaded from and saved to a JSON file.
 - GitHub release metadata can be queried asynchronously.
 - SHA-256 verification is implemented for downloaded file data.
-- The Windows WASAPI backend is **not implemented yet**. The audio service currently returns no devices rather than fabricated hardware.
+- **Windows audio endpoint discovery is implemented** through the Core Audio MMDevice API: active playback and capture endpoints, friendly names, stable endpoint IDs, and current Console defaults.
+- **Changing the Windows default input/output endpoint is implemented** through the COM `IPolicyConfig` interface. This interface is undocumented by Microsoft, so Windows-version compatibility must be verified on physical Windows machines. SoundSwaper currently applies the selected endpoint to the Console, Multimedia, and Communications roles.
+- The audio core APIs are not yet exposed as Tauri commands or connected to the frontend.
 - Global shortcuts and system-tray integration are not implemented yet.
-- The frontend is a scaffold; configuration management and device switching are not wired to Rust commands yet.
 
 The project is under active development. Do not treat the feature list of the original .NET application as a statement that all features are available in this Rust rewrite.
+
+## Audio backend notes
+
+The endpoint IDs returned by Windows are opaque identifiers. Persist `AudioDevice.hardware_id` and pass it to `set_default_output_device` or `set_default_input_device`; do not identify devices by friendly name because names are not guaranteed to be unique.
+
+The error-aware `try_*` functions should be preferred by application code. The older convenience functions remain for compatibility and return an empty list or a disconnected placeholder when the Windows audio service reports an error.
