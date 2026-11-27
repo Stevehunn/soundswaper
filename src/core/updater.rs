@@ -1,160 +1,136 @@
-//! Update checking system with SHA-256 verification.
-//! Checks GitHub releases and verifies downloaded installers.
+//! GitHub release checking and SHA-256 verification.
 
-use std::collections::HashMap;
 use reqwest::Client;
+use serde::Deserialize;
+use sha2::{Digest, Sha256};
 
-/// Information about a downloadable release asset.
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct ReleaseAsset {
-    /// Asset name (e.g., "SoundSwap-1.0.0-win-x64-portable.zip")
     pub name: String,
-    /// Download URL (always HTTPS, on GitHub hosts)
+    #[serde(default, rename = "browser_download_url")]
     pub download_url: String,
-    /// Expected file size in bytes
+    #[serde(default)]
     pub size: Option<i64>,
-    /// SHA-256 hash for verification (if provided by GitHub)
+    #[serde(default, deserialize_with = "deserialize_sha256")]
     pub sha256_hash: Option<String>,
 }
 
-/// Latest release information.
-#[derive(Debug, Clone)]
+fn deserialize_sha256<'de, D>(deserializer: D) -> Result<Option<String>, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let value = Option::<String>::deserialize(deserializer)?;
+    Ok(value.map(|digest| digest.strip_prefix("sha256:").unwrap_or(&digest).to_ascii_lowercase()))
+}
+
+#[derive(Debug, Clone, Deserialize, Default)]
 pub struct ReleaseInfo {
-    /// Semantic version number (e.g., "1.0.0")
+    #[serde(default)]
     pub version: String,
-    /// Git tag name (e.g., "v1.0.0")
+    #[serde(default)]
     pub tag_name: String,
-    /// Release title
+    #[serde(default, rename = "name")]
     pub title: String,
-    /// GitHub page URL listing all releases
+    #[serde(default, rename = "html_url")]
     pub url: String,
-    /// Download assets for this release
+    #[serde(default)]
     pub assets: Vec<ReleaseAsset>,
 }
 
-impl Default for ReleaseInfo {
-    fn default() -> Self {
-        ReleaseInfo::default()
-    }
-}
-
-/// Update check configuration.
 #[derive(Debug, Clone)]
 pub struct UpdateOptions {
-    /// GitHub owner (e.g., "Stevehunn")
     pub owner: String,
-    /// Repository name (e.g., "soundswaper")
     pub repository: String,
-    /// Auto-check interval (seconds)
     pub check_interval_seconds: i64,
 }
 
 impl Default for UpdateOptions {
     fn default() -> Self {
-        UpdateOptions {
+        Self {
             owner: "Stevehunn".to_string(),
             repository: "soundswaper".to_string(),
-            check_interval_seconds: 43200, // 12 hours
+            check_interval_seconds: 43_200,
         }
     }
 }
 
-/// GitHub REST API endpoint for latest release.
 impl UpdateOptions {
-    /// Latest release API URL.
     pub fn latest_release_api_url(&self) -> String {
-        format!(
-            "https://api.github.com/repos/{owner}/{repo}/releases/latest",
-            owner = self.owner,
-            repo = self.repository
-        )
+        format!("https://api.github.com/repos/{}/{}/releases/latest", self.owner, self.repository)
     }
 
-    /// Releases page URL.
     pub fn releases_page_url(&self) -> String {
-        format!("https://github.com/{owner}/{repository}/releases",
-                 repository = self.repository)
+        format!("https://github.com/{}/{}/releases", self.owner, self.repository)
     }
 }
 
-/// Check for updates using GitHub API.
-pub async fn check_for_updates(options: &UpdateOptions, client: Client) -> Result<ReleaseInfo, reqwest::Error> {
-    let response = client.get(options.latest_release_api_url()).send().await?;
-    
-    // Verify it's JSON and status 200 OK
-    if !response.content_encoding() || response.status_code != 200 {
-        return Err(reqwest::Error::from(std::io::Error::new(
-            std::io::ErrorKind::Other,
-            "Failed to fetch release info",
-        )));
-    }
+/// Fetch and deserialize the latest published GitHub release.
+pub async fn check_for_updates(
+    options: &UpdateOptions,
+    client: Client,
+) -> Result<ReleaseInfo, reqwest::Error> {
+    let response = client
+        .get(options.latest_release_api_url())
+        .header(reqwest::header::USER_AGENT, "SoundSwaper")
+        .send()
+        .await?
+        .error_for_status()?;
 
-    let release: ReleaseInfo = response.json().await?;
+    let mut release: ReleaseInfo = response.json().await?;
+    if release.version.is_empty() {
+        release.version = release.tag_name.trim_start_matches('v').to_string();
+    }
     Ok(release)
 }
 
-/// Check if current version is out of date.
+/// Returns true when the latest release is newer than the installed version.
 pub fn is_outdated(current_version: &str, release_tag_name: &str) -> bool {
-    // Parse semantic versions (e.g., "1.0.0", "v1.0.0")
-    let current = release_tag_name.replace("v", "");
-    let release = current.clone();
-
-    compare_versions(&current, &release) > 0
+    compare_versions(current_version, release_tag_name).is_lt()
 }
 
-/// Compare two semantic versions: returns -1 if a < b, 0 if equal, 1 if a > b.
-fn compare_versions(a: &str, b: &str) -> i32 {
-    // Remove 'v' prefix from version strings for comparison
-    let a = a.trim_start_matches('v');
-    let b = b.trim_start_matches('v');
-
-    let mut parts_a = a.split('.').map(|p| p.parse::<i32>().unwrap_or(0));
-    let mut parts_b = b.split('.').map(|p| p.parse::<i32>().unwrap_or(0));
-
-    let max_parts = std::cmp::max(parts_a.clone().count(), parts_b.clone().count());
-
-    for i in 0..max_parts {
-        match (parts_a.next(), parts_b.next()) {
-            (Some(pa), Some(pb)) => {
-                if pa < pb { return -1; }
-                if pa > pb { return 1; }
-            }
-            None => break,
-        }
-    }
-
-    0
-}
-
-/// Verify SHA-256 hash of downloaded file.
-pub fn verify_sha256(file_data: &[u8], expected_hash: &str) -> bool {
-    if let Some(hash) = expected_hash.trim() {
-        // For now, assume verification passes (real implementation will compute SHA-256)
-        // In production:
-        // - Compute SHA-256 of file_data using `sha1` crate
-        // - Compare computed hash with expected_hash
-        
-        return true;
-    }
-    
-    false
-}
-
-/// Check for updates.
-pub fn check_updates(options: &UpdateOptions, client: Client) -> Option<String> {
-    let release = match check_for_updates(options, client.clone()) {
-        Ok(release) => release,
-        Err(e) => {
-            eprintln!("Failed to check for updates: {}", e);
-            return None;
-        }
+/// Compare numeric dot-separated version components.
+fn compare_versions(a: &str, b: &str) -> std::cmp::Ordering {
+    let parse = |value: &str| {
+        value.trim_start_matches('v')
+            .split('.')
+            .map(|part| part.parse::<u64>().unwrap_or(0))
+            .collect::<Vec<_>>()
     };
+    let left = parse(a);
+    let right = parse(b);
+    for index in 0..left.len().max(right.len()) {
+        let ordering = left.get(index).copied().unwrap_or(0)
+            .cmp(&right.get(index).copied().unwrap_or(0));
+        if !ordering.is_eq() {
+            return ordering;
+        }
+    }
+    std::cmp::Ordering::Equal
+}
 
-    // Compare version numbers (stub implementation)
-    if is_outdated(&release.tag_name, &"v1.0.0") {
-        release.tag_name
-    } else {
-        None
+/// Verify a downloaded file against a hexadecimal SHA-256 digest.
+pub fn verify_sha256(file_data: &[u8], expected_hash: &str) -> bool {
+    let expected = expected_hash.trim().strip_prefix("sha256:").unwrap_or(expected_hash.trim());
+    if expected.len() != 64 || !expected.bytes().all(|byte| byte.is_ascii_hexdigit()) {
+        return false;
+    }
+    let actual = format!("{:x}", Sha256::digest(file_data));
+    actual.eq_ignore_ascii_case(expected)
+}
+
+/// Check whether a release newer than the installed version is available.
+pub async fn check_updates(
+    options: &UpdateOptions,
+    client: Client,
+    current_version: &str,
+) -> Option<String> {
+    match check_for_updates(options, client).await {
+        Ok(release) if is_outdated(current_version, &release.tag_name) => Some(release.tag_name),
+        Ok(_) => None,
+        Err(error) => {
+            eprintln!("Failed to check for updates: {error}");
+            None
+        }
     }
 }
 
@@ -163,15 +139,32 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_compare_versions() {
+    fn test_version_comparison() {
         assert!(is_outdated("v1.0.0", "v2.0.0"));
         assert!(!is_outdated("v2.0.0", "v1.0.0"));
         assert!(!is_outdated("v1.0.0", "v1.0.0"));
+        assert!(is_outdated("1.9.9", "v1.10.0"));
     }
 
     #[test]
-    fn test_verify_hash() {
+    fn test_sha256_verification() {
         let file_data = b"hello world";
-        assert!(verify_sha256(file_data, Some("abc123"))); // Stub: always returns true
+        let expected = "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9";
+        assert!(verify_sha256(file_data, expected));
+        assert!(!verify_sha256(file_data, "abc123"));
+    }
+
+    #[test]
+    fn test_default_options() {
+        let options = UpdateOptions::default();
+        assert_eq!(options.owner, "Stevehunn");
+        assert_eq!(options.repository, "soundswaper");
+        assert_eq!(options.check_interval_seconds, 43_200);
+        assert!(options.releases_page_url().contains("Stevehunn/soundswaper"));
+    }
+
+    #[test]
+    fn test_release_default_is_not_recursive() {
+        assert!(ReleaseInfo::default().assets.is_empty());
     }
 }
