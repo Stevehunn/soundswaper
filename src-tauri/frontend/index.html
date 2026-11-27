@@ -91,6 +91,19 @@
           </div>
         </div>
         <div class="mt-5 rounded-lg border border-gray-700 bg-gray-900/60 p-4">
+          <div class="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h2 class="font-semibold" data-i18n="startupTitle">Startup</h2>
+              <p class="text-sm text-gray-400" data-i18n="startupDescription">Start SoundSwaper automatically when you sign in to your Windows account.</p>
+            </div>
+            <label class="flex items-center gap-2 text-sm text-gray-200">
+              <input id="startWithWindows" type="checkbox" onchange="toggleStartWithWindows(this.checked)" class="h-4 w-4 rounded border-gray-600 bg-gray-800 text-blue-600 focus:ring-blue-500" />
+              <span data-i18n="startWithWindows">Launch SoundSwaper when I sign in to Windows</span>
+            </label>
+          </div>
+        </div>
+
+        <div class="mt-5 rounded-lg border border-gray-700 bg-gray-900/60 p-4">
           <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
             <div>
               <h2 class="font-semibold">Audio profiles</h2>
@@ -171,9 +184,11 @@
     // Language data
     const translations = {
       en: { checkUpdates: "Check for updates", newVersionAvailable: "New version available!", 
-             customizeTheme: "Customize Theme" },
+             customizeTheme: "Customize Theme", startupTitle: "Startup", startWithWindows: "Launch SoundSwaper when I sign in to Windows",
+             startupDescription: "Start SoundSwaper automatically when you sign in to your Windows account." },
       fr: { checkUpdates: "Vérifier les mises à jour", newVersionAvailable: "Nouvelle version disponible!",
-            customizeTheme: "Personnaliser le thème" }
+            customizeTheme: "Personnaliser le thème", startupTitle: "Démarrage", startWithWindows: "Lancer SoundSwaper à l’ouverture de session Windows",
+            startupDescription: "Démarrer automatiquement SoundSwaper lorsque vous ouvrez votre session Windows." }
     };
 
     // Apply a language without changing persisted settings (used during startup).
@@ -403,6 +418,23 @@
       });
     }
 
+    async function toggleStartWithWindows(enabled) {
+      const checkbox = document.getElementById('startWithWindows');
+      checkbox.disabled = true;
+      try {
+        await getTauriInvoke()('set_start_with_windows', { enabled });
+        if (appConfiguration) appConfiguration.start_with_windows = enabled;
+        showAudioStatus(enabled
+          ? 'SoundSwaper will start when you sign in to Windows.'
+          : 'SoundSwaper will no longer start automatically with Windows.');
+      } catch (error) {
+        checkbox.checked = !enabled;
+        showAudioStatus('Could not update Windows startup setting: ' + String(error), true);
+      } finally {
+        checkbox.disabled = false;
+      }
+    }
+
     async function loadAppConfiguration() {
       try {
         appConfiguration = await getTauriInvoke()('load_configuration');
@@ -411,12 +443,19 @@
         appConfiguration.theme ||= 'system';
         applyLanguage(appConfiguration.language);
         applyTheme(appConfiguration.theme);
+        const startupEnabled = await getTauriInvoke()('get_start_with_windows');
+        document.getElementById('startWithWindows').checked = startupEnabled;
+        if (appConfiguration.start_with_windows !== startupEnabled) {
+          appConfiguration.start_with_windows = startupEnabled;
+          await persistConfiguration();
+        }
         renderAudioProfiles();
       } catch (error) {
         showAudioStatus('Could not load saved profiles: ' + String(error), true);
         appConfiguration = { configurations: [], theme: 'system', language: 'en', check_for_updates: true, start_with_windows: false, data_path: '' };
         applyLanguage(appConfiguration.language);
         applyTheme(appConfiguration.theme);
+        document.getElementById('startWithWindows').checked = false;
         renderAudioProfiles();
       }
     }

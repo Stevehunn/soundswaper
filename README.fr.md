@@ -46,6 +46,7 @@ cargo test
 - **Interface Tauri** : les commandes audio sont reliées aux sélecteurs de périphériques d'entrée et de sortie.
 - **Zone de notification** : menu permettant d'ouvrir SoundSwaper, d'actualiser les périphériques et de quitter l'application. Un clic gauche ouvre la fenêtre.
 - **Préférences d'interface persistantes** : langue (français/anglais) et thème (clair/sombre) enregistrés dans le fichier de configuration utilisateur.
+- **Démarrage automatique Windows** : activation/désactivation depuis l'interface, avec vérification de l'inscription réelle au démarrage et sauvegarde de la préférence.
 - **Profils audio persistants** : enregistrer, appliquer et supprimer des combinaisons de périphériques d'entrée et de sortie. Les profils sont stockés dans le répertoire de configuration utilisateur sous forme de JSON et réutilisent les identifiants Windows des périphériques.
 - **Raccourcis clavier globaux** (lorsque l'application est lancée) :
   - `Ctrl + Alt + S` : afficher la fenêtre.
