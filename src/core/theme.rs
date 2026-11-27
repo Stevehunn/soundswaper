@@ -10,7 +10,7 @@ pub struct Presets {
 }
 
 /// Color values for a custom theme.
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CustomThemeColors {
     /// Background color (hex string).
     pub background: String,
@@ -23,7 +23,7 @@ pub struct CustomThemeColors {
 }
 
 /// Theme configuration (dark/light/system/custom).
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Theme {
     Dark,
     Light,
