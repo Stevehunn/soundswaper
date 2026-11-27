@@ -356,7 +356,7 @@
         name.textContent = profile.name;
         const description = document.createElement('p');
         description.className = 'text-xs text-gray-400 break-all';
-        description.textContent = 'Output: ' + (profile.output_device || 'Not set') + ' · Input: ' + (profile.input_device || 'Not set');
+        description.textContent = 'Saved playback and recording device combination';
         details.append(name, description);
 
         const actions = document.createElement('div');
