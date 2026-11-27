@@ -41,6 +41,15 @@
     <!-- Configurations Grid (Cards) -->
     <div id="configsGrid" class="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-5xl mx-auto w-full fade-in">
       <section class="col-span-full rounded-xl border border-gray-700 bg-gray-800 p-5 shadow-lg">
+        <div class="mb-5 rounded-lg border border-gray-700 bg-gray-900/60 p-4">
+          <h2 class="font-semibold mb-2">Global keyboard shortcuts</h2>
+          <ul class="grid grid-cols-1 sm:grid-cols-3 gap-2 text-sm text-gray-300">
+            <li><kbd class="rounded bg-gray-700 px-2 py-1">Ctrl + Alt + S</kbd> Show window</li>
+            <li><kbd class="rounded bg-gray-700 px-2 py-1">Ctrl + Alt + O</kbd> Next output device</li>
+            <li><kbd class="rounded bg-gray-700 px-2 py-1">Ctrl + Alt + I</kbd> Next input device</li>
+          </ul>
+          <p class="mt-2 text-xs text-gray-400">Shortcuts work while SoundSwaper is running, even when its window is in the background.</p>
+        </div>
         <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
           <div>
             <h2 class="text-lg font-semibold">Audio devices</h2>
@@ -299,6 +308,16 @@
     }
 
     refreshAudioDevices();
+
+    // Keep the displayed defaults synchronized after a tray refresh or global shortcut.
+    if (window.__TAURI__?.event?.listen) {
+      window.__TAURI__.event.listen('soundswap://audio-devices-changed', () => {
+        refreshAudioDevices();
+      });
+      window.__TAURI__.event.listen('soundswap://shortcut-error', (event) => {
+        showAudioStatus(String(event.payload), true);
+      });
+    }
   </script>
 
 </body>
