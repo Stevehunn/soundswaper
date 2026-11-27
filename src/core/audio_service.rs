@@ -190,7 +190,7 @@ fn enumerate_direction(
     direction: wasapi::Direction,
 ) -> AudioServiceResult<Vec<AudioDevice>> {
     let collection = enumerator
-        .get_device_collection(&direction)
+        .get_device_collection(direction)
         .map_err(|error| format!("Could not enumerate {direction} devices: {error}"))?;
     let count = collection
         .get_nbr_devices()
@@ -223,7 +223,7 @@ fn try_get_default_device(direction: wasapi::Direction) -> AudioServiceResult<Au
     with_com_apartment(move || {
         let enumerator = wasapi::DeviceEnumerator::new().map_err(|error| error.to_string())?;
         let device = enumerator
-            .get_default_device(&direction)
+            .get_default_device(direction)
             .map_err(|error| format!("Could not read the default {direction} device: {error}"))?;
         let hardware_id = device
             .get_id()
