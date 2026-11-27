@@ -6,7 +6,7 @@ use crate::core::audio_service::{self, AudioDevice};
 use tauri::{
     menu::{Menu, MenuItem, PredefinedMenuItem},
     tray::{MouseButton, MouseButtonState, TrayIconBuilder, TrayIconEvent},
-    Emitter, Manager,
+    Emitter, Manager, WindowEvent,
 };
 use tauri_plugin_global_shortcut::{
     Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState,
@@ -155,6 +155,13 @@ pub fn run() {
                 })
                 .build(),
         )
+        .on_window_event(|window, event| {
+            if let WindowEvent::CloseRequested { api, .. } = event {
+                // Keep the process and tray icon alive when the user closes the window.
+                api.prevent_close();
+                let _ = window.hide();
+            }
+        })
         .invoke_handler(tauri::generate_handler![
             get_audio_devices,
             get_default_audio_device,
