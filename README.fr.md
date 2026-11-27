@@ -45,6 +45,7 @@ cargo test
 - **Changement des périphériques par défaut** : implémenté via l'interface COM `IPolicyConfig`, non documentée par Microsoft. Le changement s'applique aux rôles Console, Multimedia et Communications.
 - **Interface Tauri** : les commandes audio sont reliées aux sélecteurs de périphériques d'entrée et de sortie.
 - **Zone de notification** : menu permettant d'ouvrir SoundSwaper, d'actualiser les périphériques et de quitter l'application. Un clic gauche ouvre la fenêtre.
+- **Préférences d'interface persistantes** : langue (français/anglais) et thème (clair/sombre) enregistrés dans le fichier de configuration utilisateur.
 - **Profils audio persistants** : enregistrer, appliquer et supprimer des combinaisons de périphériques d'entrée et de sortie. Les profils sont stockés dans le répertoire de configuration utilisateur sous forme de JSON et réutilisent les identifiants Windows des périphériques.
 - **Raccourcis clavier globaux** (lorsque l'application est lancée) :
   - `Ctrl + Alt + S` : afficher la fenêtre.
