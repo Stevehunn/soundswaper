@@ -270,6 +270,7 @@ pub fn run() {
     let input_for_handler = next_input_shortcut.clone();
 
     let app = tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(
             tauri_plugin_autostart::Builder::new()
                 .app_name("SoundSwaper")
