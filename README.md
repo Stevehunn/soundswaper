@@ -38,8 +38,8 @@ cargo test
 
 - Tauri 2 application entry point and frontend loading are configured.
 - Configuration settings can be loaded from and saved to a JSON file.
-- GitHub release metadata can be queried asynchronously.
-- SHA-256 verification is implemented for downloaded file data.
+- **Signed in-app updates** use the official Tauri updater plugin, verify Minisign signatures, and install the Windows MSI after user confirmation.
+- GitHub Releases publish the signed MSI, its `.sig` signature, and a `latest.json` updater manifest.
 - **Windows audio endpoint discovery** enumerates active playback and capture endpoints, friendly names, stable endpoint IDs, and current Console defaults through Core Audio/MMDevice.
 - **Windows default-device switching** uses the undocumented COM `IPolicyConfig` interface. SoundSwaper currently applies the selected endpoint to Console, Multimedia, and Communications roles; test compatibility on supported Windows versions.
 - **Tauri audio commands and frontend selectors** expose endpoint listing, default-device lookup, and switching for input and output.
@@ -61,3 +61,13 @@ The error-aware `try_*` functions should be preferred by application code. The o
 ## Windows validation
 
 The audio policy interface and the tray/shortcut behavior still require end-to-end testing on physical Windows 10/11 machines. CI compilation and unit tests cannot verify interactions with the installed audio drivers, other applications' shortcut registrations, or the Windows notification area.
+
+
+## Publishing signed updates
+
+The release workflow requires two GitHub Actions repository secrets:
+
+- `TAURI_SIGNING_PRIVATE_KEY`: the complete contents of the Tauri updater private key (never commit or publish it).
+- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`: the key password, or an empty secret if the key has no password.
+
+The matching public key is embedded in `tauri.conf.json`. Keep the private key backed up securely: losing it prevents signing updates trusted by already-installed copies. Push a version tag such as `v1.0.1` to build and publish the MSI, signature, and updater manifest. The first signed release must be installed manually by existing users before in-app updates can be used.

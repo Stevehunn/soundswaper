@@ -40,7 +40,7 @@ cargo test
 
 - **Application Tauri 2** : point d'entrée et chargement du frontend configurés.
 - **Configuration** : lecture et sauvegarde des paramètres JSON implémentées.
-- **Mises à jour** : vérification de la dernière version publiée sur GitHub depuis l’interface et ouverture de la page officielle de téléchargement. Le téléchargement et l’installation automatiques ne sont pas encore intégrés ; la vérification SHA-256 est disponible côté Rust.
+- **Mises à jour signées** : le plugin officiel Tauri vérifie la signature Minisign, télécharge et installe le MSI après confirmation de l’utilisateur. Le workflow GitHub publie le MSI signé, son fichier `.sig` et le manifeste `latest.json`.
 - **Détection audio Windows** : énumération des périphériques actifs de sortie et d'entrée via Core Audio/MMDevice, avec nom, identifiant Windows et périphérique par défaut.
 - **Changement des périphériques par défaut** : implémenté via l'interface COM `IPolicyConfig`, non documentée par Microsoft. Le changement s'applique aux rôles Console, Multimedia et Communications.
 - **Interface Tauri** : les commandes audio sont reliées aux sélecteurs de périphériques d'entrée et de sortie.
@@ -66,3 +66,13 @@ Le changement du périphérique par défaut utilise une interface Windows non do
 ## Licence
 
 [MIT](LICENSE)
+
+
+## Publication des mises à jour signées
+
+Le workflow de publication nécessite deux secrets dans les paramètres GitHub du dépôt (**Settings → Secrets and variables → Actions**) :
+
+- `TAURI_SIGNING_PRIVATE_KEY` : contenu complet de la clé privée Tauri (ne jamais la committer ni la publier).
+- `TAURI_SIGNING_PRIVATE_KEY_PASSWORD` : mot de passe de la clé, ou secret vide si elle n'a pas de mot de passe.
+
+La clé publique correspondante est intégrée dans `tauri.conf.json`. Conservez une sauvegarde sécurisée de la clé privée : sa perte empêcherait de signer les mises à jour acceptées par les installations existantes. Pour publier une version, poussez un tag tel que `v1.0.1`. Le premier installateur signé devra être installé manuellement par les utilisateurs déjà équipés avant qu'ils puissent utiliser la mise à jour intégrée.

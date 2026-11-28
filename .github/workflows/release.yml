@@ -11,9 +11,12 @@ permissions:
 jobs:
   release:
     runs-on: windows-latest
+    env:
+      TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+      TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Set up stable Rust
         uses: dtolnay/rust-toolchain@stable
@@ -21,11 +24,52 @@ jobs:
       - name: Install Tauri CLI
         run: cargo install tauri-cli --version "^2" --locked
 
-      - name: Build Windows installers
+      - name: Validate updater signing secret
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY)) {
+            throw 'Missing TAURI_SIGNING_PRIVATE_KEY GitHub Actions secret.'
+          }
+
+      - name: Build signed Windows updater artifacts
         run: cargo tauri build
 
-      - name: Publish GitHub release
+      - name: Generate updater manifest
+        shell: pwsh
+        run: |
+          $msi = Get-ChildItem "target/release/bundle/msi/*.msi" | Select-Object -First 1
+          if (-not $msi) { throw "Tauri did not produce an MSI installer." }
+
+          $signaturePath = "$($msi.FullName).sig"
+          if (-not (Test-Path $signaturePath)) {
+            throw "Updater signature not found: $signaturePath"
+          }
+
+          $signature = (Get-Content -Raw $signaturePath).Trim()
+          $version = $env:GITHUB_REF_NAME.TrimStart('v')
+          $downloadUrl = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/$env:GITHUB_REF_NAME/$($msi.Name)"
+          $manifest = @{
+            version = $version
+            notes = "SoundSwaper $version"
+            pub_date = (Get-Date).ToUniversalTime().ToString("o")
+            platforms = @{
+              "windows-x86_64" = @{
+                signature = $signature
+                url = $downloadUrl
+              }
+            }
+          } | ConvertTo-Json -Depth 6
+
+          [System.IO.File]::WriteAllText(
+            "latest.json",
+            $manifest,
+            [System.Text.UTF8Encoding]::new($false)
+          )
+
+      - name: Publish GitHub release and updater manifest
         uses: softprops/action-gh-release@v2
         with:
           files: |
             target/release/bundle/msi/*.msi
+            target/release/bundle/msi/*.msi.sig
+            latest.json

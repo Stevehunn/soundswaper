@@ -151,6 +151,7 @@
       <h2 class="text-xl font-bold mb-3" data-i18n="updateDialogTitle">Software update</h2>
       <p id="updateMessage" class="text-gray-300 mb-4" aria-live="polite"></p>
       <a id="updateReleaseLink" class="hidden inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition-colors mb-3" target="_blank" rel="noopener noreferrer" data-i18n="openRelease">Open release page</a>
+      <button id="installUpdateButton" onclick="installUpdate()" class="hidden bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition-colors mb-3">Install update</button>
       <button onclick="closeUpdateDialog()" class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded transition-colors">
         Close
       </button>
@@ -187,13 +188,13 @@
       en: { checkUpdates: "Check for updates", newVersionAvailable: "New version available!", 
              customizeTheme: "Customize Theme", startupTitle: "Startup", startWithWindows: "Launch SoundSwaper when I sign in to Windows",
              startupDescription: "Start SoundSwaper automatically when you sign in to your Windows account.",
-             updateChecking: "Checking GitHub for updates…", updateAvailable: "Version {version} is available. Download it from the official release page.",
+             updateChecking: "Checking GitHub for updates…", updateAvailable: "Version {version} is available. Install it now?", installUpdate: "Install update", updateInstalling: "Downloading and installing the update…", updateInstallFailed: "Could not install the update: {error}",
              updateCurrent: "SoundSwaper is up to date (version {version}).", updateCheckFailed: "Could not check for updates: {error}",
              openRelease: "Open release page", updateDialogTitle: "Software update" },
       fr: { checkUpdates: "Vérifier les mises à jour", newVersionAvailable: "Nouvelle version disponible!",
             customizeTheme: "Personnaliser le thème", startupTitle: "Démarrage", startWithWindows: "Lancer SoundSwaper à l’ouverture de session Windows",
             startupDescription: "Démarrer automatiquement SoundSwaper lorsque vous ouvrez votre session Windows.",
-            updateChecking: "Recherche des mises à jour sur GitHub…", updateAvailable: "La version {version} est disponible. Téléchargez-la depuis la page officielle des versions.",
+            updateChecking: "Recherche des mises à jour sur GitHub…", updateAvailable: "La version {version} est disponible. Voulez-vous l’installer maintenant ?", installUpdate: "Installer la mise à jour", updateInstalling: "Téléchargement et installation de la mise à jour…", updateInstallFailed: "Impossible d’installer la mise à jour : {error}",
             updateCurrent: "SoundSwaper est à jour (version {version}).", updateCheckFailed: "Impossible de vérifier les mises à jour : {error}",
             openRelease: "Ouvrir la page de téléchargement", updateDialogTitle: "Mise à jour du logiciel" }
     };
@@ -260,12 +261,14 @@
       const message = document.getElementById('updateMessage');
       const releaseLink = document.getElementById('updateReleaseLink');
       const button = document.getElementById('updateButton');
+      const installButton = document.getElementById('installUpdateButton');
       const label = button.querySelector('[data-i18n="checkUpdates"]');
       const previousLabel = label.textContent;
       button.disabled = true;
       label.textContent = translations[document.documentElement.lang]?.updateChecking || 'Checking…';
       message.textContent = translations[document.documentElement.lang]?.updateChecking || 'Checking for updates…';
       releaseLink.classList.add('hidden');
+      installButton.classList.add('hidden');
       dialog.classList.remove('hidden');
 
       try {
@@ -275,6 +278,8 @@
           message.textContent = t.updateAvailable.replace('{version}', result.latest_version);
           releaseLink.href = result.release_url;
           releaseLink.classList.remove('hidden');
+          installButton.textContent = t.installUpdate;
+          installButton.classList.remove('hidden');
         } else {
           message.textContent = t.updateCurrent.replace('{version}', result.current_version);
         }
@@ -284,6 +289,26 @@
       } finally {
         button.disabled = false;
         label.textContent = previousLabel;
+      }
+    }
+
+
+    // Install the signed update through Tauri's native updater plugin.
+    async function installUpdate() {
+      const button = document.getElementById('installUpdateButton');
+      const message = document.getElementById('updateMessage');
+      const t = translations[document.documentElement.lang] || translations.en;
+      button.disabled = true;
+      button.textContent = t.updateInstalling;
+      message.textContent = t.updateInstalling;
+      try {
+        await getTauriInvoke()('install_update');
+        // On Windows, the updater launches the installer and exits the current process.
+        message.textContent = t.updateInstalling;
+      } catch (error) {
+        message.textContent = t.updateInstallFailed.replace('{error}', String(error));
+        button.disabled = false;
+        button.textContent = t.installUpdate;
       }
     }
 

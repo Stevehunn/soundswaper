@@ -10,6 +10,7 @@ use tauri::{
     Emitter, Manager, WindowEvent,
 };
 use tauri_plugin_autostart::ManagerExt as AutostartManagerExt;
+use tauri_plugin_updater::UpdaterExt;
 use tauri_plugin_global_shortcut::{
     Code, GlobalShortcutExt, Modifiers, Shortcut, ShortcutState,
 };
@@ -90,6 +91,27 @@ async fn check_for_updates(app: tauri::AppHandle) -> Result<UpdateCheckResult, S
         update_available,
         release_url,
     })
+}
+
+/// Download and install the currently available signed update.
+/// The updater verifies the artifact signature against the public key in tauri.conf.json.
+#[tauri::command]
+async fn install_update(app: tauri::AppHandle) -> Result<(), String> {
+    let update = app
+        .updater()
+        .map_err(|error| format!("Could not initialize updater: {error}"))?
+        .check()
+        .await
+        .map_err(|error| format!("Could not check for an update: {error}"))?;
+
+    let Some(update) = update else {
+        return Err("No update is currently available.".to_string());
+    };
+
+    update
+        .download_and_install(|_, _| {}, || {})
+        .await
+        .map_err(|error| format!("Could not download or install the update: {error}"))
 }
 
 /// Return whether SoundSwaper is registered to start when the user signs in to Windows.
@@ -248,6 +270,7 @@ pub fn run() {
     let input_for_handler = next_input_shortcut.clone();
 
     let app = tauri::Builder::default()
+        .plugin(tauri_plugin_updater::Builder::new().build())
         .plugin(
             tauri_plugin_autostart::Builder::new()
                 .app_name("SoundSwaper")
@@ -285,6 +308,7 @@ pub fn run() {
             load_configuration,
             save_configuration,
             check_for_updates,
+            install_update,
             get_start_with_windows,
             set_start_with_windows,
             get_audio_devices,
