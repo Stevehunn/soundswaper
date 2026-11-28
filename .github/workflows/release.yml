@@ -31,6 +31,34 @@ jobs:
             throw 'Missing TAURI_SIGNING_PRIVATE_KEY GitHub Actions secret.'
           }
 
+      - name: Synchronize application version with release tag
+        shell: pwsh
+        run: |
+          $tag = $env:GITHUB_REF_NAME
+          if ($tag -notmatch '^v(?<version>\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?)$') {
+            throw "Release tag '$tag' must use semantic version format, for example v1.0.1."
+          }
+
+          $version = $Matches.version
+
+          $cargoManifest = Get-Content -Raw "Cargo.toml"
+          $cargoPattern = '(?m)^version = "[^"]+"$'
+          $cargoUpdated = [regex]::Replace($cargoManifest, $cargoPattern, "version = `"$version`"", 1)
+          if ($cargoUpdated -eq $cargoManifest) {
+            throw "Could not update the package version in Cargo.toml."
+          }
+          [System.IO.File]::WriteAllText("Cargo.toml", $cargoUpdated, [System.Text.UTF8Encoding]::new($false))
+
+          $tauriConfig = Get-Content -Raw "tauri.conf.json"
+          $configPattern = '"version"\s*:\s*"[^"]+"'
+          $configUpdated = [regex]::Replace($tauriConfig, $configPattern, "`"version`": `"$version`"", 1)
+          if ($configUpdated -eq $tauriConfig) {
+            throw "Could not update the application version in tauri.conf.json."
+          }
+          [System.IO.File]::WriteAllText("tauri.conf.json", $configUpdated, [System.Text.UTF8Encoding]::new($false))
+
+          Write-Host "Building SoundSwaper version $version from tag $tag."
+
       - name: Build signed Windows updater artifacts
         run: cargo tauri build
 
