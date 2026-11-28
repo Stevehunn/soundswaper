@@ -24,6 +24,13 @@ jobs:
       - name: Install Tauri CLI
         run: cargo install tauri-cli --version "^2" --locked
 
+      - name: Validate updater signing secret
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:TAURI_SIGNING_PRIVATE_KEY)) {
+            throw 'Missing TAURI_SIGNING_PRIVATE_KEY GitHub Actions secret.'
+          }
+
       - name: Build signed Windows updater artifacts
         run: cargo tauri build
 
