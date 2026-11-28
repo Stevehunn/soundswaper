@@ -41,62 +41,15 @@ jobs:
 
           $version = $Matches.version
 
-          # Update only the package version in the [package] section.
-          # Work line-by-line so both LF and CRLF files are handled safely.
-          $cargoLines = [System.Collections.Generic.List[string]](Get-Content "Cargo.toml")
+          # Read line-by-line to handle both LF and CRLF checkouts.
+          $cargoLines = @(Get-Content "Cargo.toml")
           $inPackageSection = $false
           $packageVersionFound = $false
 
           for ($i = 0; $i -lt $cargoLines.Count; $i++) {
             $line = $cargoLines[$i]
 
-            if ($line -match '^\s*\[package\]\s*
-
-          Write-Host "Building SoundSwaper version $version from tag $tag."
-
-      - name: Build signed Windows updater artifacts
-        run: cargo tauri build
-
-      - name: Generate updater manifest
-        shell: pwsh
-        run: |
-          $msi = Get-ChildItem "target/release/bundle/msi/*.msi" | Select-Object -First 1
-          if (-not $msi) { throw "Tauri did not produce an MSI installer." }
-
-          $signaturePath = "$($msi.FullName).sig"
-          if (-not (Test-Path $signaturePath)) {
-            throw "Updater signature not found: $signaturePath"
-          }
-
-          $signature = (Get-Content -Raw $signaturePath).Trim()
-          $version = $env:GITHUB_REF_NAME.TrimStart('v')
-          $downloadUrl = "https://github.com/$env:GITHUB_REPOSITORY/releases/download/$env:GITHUB_REF_NAME/$($msi.Name)"
-          $manifest = @{
-            version = $version
-            notes = "SoundSwaper $version"
-            pub_date = (Get-Date).ToUniversalTime().ToString("o")
-            platforms = @{
-              "windows-x86_64" = @{
-                signature = $signature
-                url = $downloadUrl
-              }
-            }
-          } | ConvertTo-Json -Depth 6
-
-          [System.IO.File]::WriteAllText(
-            "latest.json",
-            $manifest,
-            [System.Text.UTF8Encoding]::new($false)
-          )
-
-      - name: Publish GitHub release and updater manifest
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            target/release/bundle/msi/*.msi
-            target/release/bundle/msi/*.msi.sig
-            latest.json
-) {
+            if ($line -match '^\s*\[package\]\s*$') {
               $inPackageSection = $true
               continue
             }
@@ -117,15 +70,29 @@ jobs:
           }
 
           $cargoUpdated = ($cargoLines -join "`n") + "`n"
-          [System.IO.File]::WriteAllText("Cargo.toml", $cargoUpdated, [System.Text.UTF8Encoding]::new($false))
+          [System.IO.File]::WriteAllText(
+            "Cargo.toml",
+            $cargoUpdated,
+            [System.Text.UTF8Encoding]::new($false)
+          )
 
           $tauriConfig = Get-Content -Raw "tauri.conf.json"
           $configPattern = '"version"\s*:\s*"[^"]+"'
           if (-not [regex]::IsMatch($tauriConfig, $configPattern)) {
             throw "Could not find the application version in tauri.conf.json."
           }
-          $configUpdated = [regex]::Replace($tauriConfig, $configPattern, "`"version`": `"$version`"", 1)
-          [System.IO.File]::WriteAllText("tauri.conf.json", $configUpdated, [System.Text.UTF8Encoding]::new($false))
+
+          $configUpdated = [regex]::Replace(
+            $tauriConfig,
+            $configPattern,
+            "`"version`": `"$version`"",
+            1
+          )
+          [System.IO.File]::WriteAllText(
+            "tauri.conf.json",
+            $configUpdated,
+            [System.Text.UTF8Encoding]::new($false)
+          )
 
           Write-Host "Building SoundSwaper version $version from tag $tag."
 
@@ -136,7 +103,9 @@ jobs:
         shell: pwsh
         run: |
           $msi = Get-ChildItem "target/release/bundle/msi/*.msi" | Select-Object -First 1
-          if (-not $msi) { throw "Tauri did not produce an MSI installer." }
+          if (-not $msi) {
+            throw "Tauri did not produce an MSI installer."
+          }
 
           $signaturePath = "$($msi.FullName).sig"
           if (-not (Test-Path $signaturePath)) {
