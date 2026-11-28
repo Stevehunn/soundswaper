@@ -28,7 +28,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "untrusted comment: minisign public key: 00D312CC60B68A87\nRWSHirZgPBLTAOORKR66+YU9z+C3Npx0iQ5NODaNzWMmkKe66QRgEGCf",
+      "pubkey": "untrusted comment: minisign public key: 00D3123C60B68A87\nRWSHirZgPBLTAOORKR66+YU9z+C3Npx0iQ5NODaNzWMmkKe66QRgEGCf",
       "endpoints": [
         "https://github.com/Stevehunn/soundswaper/releases/latest/download/latest.json"
       ],
